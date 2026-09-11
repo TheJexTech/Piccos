@@ -4,6 +4,7 @@ const TABS = [
   { href: "/shop", label: "Overview" },
   { href: "/shop/stations", label: "Stations" },
   { href: "/shop/staff", label: "Staff" },
+  { href: "/shop/services", label: "Services" },
 ];
 
 export function ShopSubNav({ active }: { active: string }) {

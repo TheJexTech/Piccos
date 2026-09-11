@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ShopForm } from "./shop-form";
+import { ShopSubNav } from "@/components/shop-sub-nav";
 import type { Business } from "@/lib/business/types";
 
 export default async function ShopPage() {
@@ -35,6 +36,7 @@ export default async function ShopPage() {
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
       <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Shop overview</h1>
+      <ShopSubNav active="/shop" />
       <ShopForm business={business} readOnly={membership.role !== "owner"} />
     </div>
   );

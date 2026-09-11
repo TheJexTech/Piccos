@@ -18,6 +18,9 @@ export function AppNav({ businessName }: { businessName: string }) {
           <Link href="/activity" className="hover:text-black dark:hover:text-zinc-50">
             Activity
           </Link>
+          <Link href="/expenses" className="hover:text-black dark:hover:text-zinc-50">
+            Expenses
+          </Link>
         </nav>
       </div>
       <div className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">

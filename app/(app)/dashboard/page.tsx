@@ -2,30 +2,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinessDateRanges } from "@/lib/dashboard/timezone";
 import { formatMoney } from "@/lib/dashboard/format";
+import { sum, groupSum } from "@/lib/dashboard/aggregate";
 import { StatCard } from "@/components/stat-card";
 import { TotalsList } from "@/components/totals-list";
 
 type TxRow = { amount: number; staff: { display_name: string } | null };
 type ExpenseRow = { amount: number; expense_categories: { name: string } | null };
-
-function sum(rows: { amount: number }[] | null | undefined): number {
-  return (rows ?? []).reduce((total, r) => total + Number(r.amount), 0);
-}
-
-function groupSum<T>(
-  rows: T[] | null | undefined,
-  keyFn: (row: T) => string,
-  amountFn: (row: T) => number,
-): { label: string; total: number }[] {
-  const map = new Map<string, number>();
-  for (const row of rows ?? []) {
-    const key = keyFn(row);
-    map.set(key, (map.get(key) ?? 0) + amountFn(row));
-  }
-  return [...map.entries()]
-    .map(([label, total]) => ({ label, total }))
-    .sort((a, b) => b.total - a.total);
-}
 
 export default async function DashboardPage() {
   const supabase = await createClient();

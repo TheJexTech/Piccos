@@ -3,9 +3,15 @@ import type { Transaction } from "@/lib/transactions/types";
 
 const PAYMENT_LABELS = Object.fromEntries(PAYMENT_METHODS.map((m) => [m.value, m.label]));
 
-export function TransactionsList({ transactions }: { transactions: Transaction[] }) {
+export function TransactionsList({
+  transactions,
+  emptyMessage = "No activity yet.",
+}: {
+  transactions: Transaction[];
+  emptyMessage?: string;
+}) {
   if (transactions.length === 0) {
-    return <p className="mt-8 text-sm text-zinc-500 dark:text-zinc-400">No activity yet.</p>;
+    return <p className="mt-8 text-sm text-zinc-500 dark:text-zinc-400">{emptyMessage}</p>;
   }
 
   return (

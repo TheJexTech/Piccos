@@ -28,6 +28,37 @@ function getTimezoneOffsetMinutes(timeZone: string, date: Date): number {
   return (asUTC - date.getTime()) / 60000;
 }
 
+export function getBusinessTodayDateStr(timeZone: string, now: Date = new Date()): string {
+  const offsetMinutes = getTimezoneOffsetMinutes(timeZone, now);
+  const localNow = new Date(now.getTime() + offsetMinutes * 60000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${localNow.getUTCFullYear()}-${pad(localNow.getUTCMonth() + 1)}-${pad(localNow.getUTCDate())}`;
+}
+
+// Converts a "YYYY-MM-DD" local calendar date (in the business's
+// timezone) plus an inclusive end date into the UTC instants bounding
+// that range (end is exclusive, i.e. the start of the day *after*
+// endDateStr, so the end date itself is fully included).
+//
+// Uses "now"'s UTC offset for the conversion rather than the offset at
+// the actual historical date. None of V1's supported timezones (Lagos,
+// Accra, Nairobi, Cairo, Johannesburg, UTC) currently observe daylight
+// saving time, so this is safe for now — it would need revisiting
+// before adding a DST-observing timezone to the list.
+export function localDateRangeToUTC(
+  timeZone: string,
+  startDateStr: string,
+  endDateStr: string,
+  now: Date = new Date(),
+): { startUTC: Date; endUTC: Date } {
+  const offsetMinutes = getTimezoneOffsetMinutes(timeZone, now);
+  const toUTC = (dateStr: string, dayOffset: number) => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(Date.UTC(y, m - 1, d + dayOffset, 0, 0, 0) - offsetMinutes * 60000);
+  };
+  return { startUTC: toUTC(startDateStr, 0), endUTC: toUTC(endDateStr, 1) };
+}
+
 export function getBusinessDateRanges(timeZone: string, now: Date = new Date()) {
   const offsetMinutes = getTimezoneOffsetMinutes(timeZone, now);
   const localNow = new Date(now.getTime() + offsetMinutes * 60000);

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { NewTransactionForm } from "./new-transaction-form";
-import { TransactionsList } from "./transactions-list";
+import { TransactionsList } from "@/components/transactions-list";
 import type { Transaction } from "@/lib/transactions/types";
 
 export default async function ActivityPage() {

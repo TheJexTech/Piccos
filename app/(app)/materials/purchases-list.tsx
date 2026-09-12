@@ -17,7 +17,7 @@ export function PurchasesList({ purchases }: { purchases: MaterialPurchase[] }) 
               {p.materials?.name ?? "Unknown material"} · {p.quantity} @ {Number(p.unit_cost).toFixed(2)}
             </p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {new Date(p.purchase_date).toLocaleDateString()}
+              {new Date(p.purchase_date).toLocaleDateString("en-US")}
               {p.supplier ? ` · ${p.supplier}` : ""}
             </p>
           </div>

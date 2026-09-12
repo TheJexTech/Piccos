@@ -60,3 +60,29 @@ export async function createTransaction(
   revalidatePath("/activity");
   return { error: null };
 }
+
+export async function voidTransaction(
+  transactionId: string,
+  _prevState: TransactionActionState,
+  formData: FormData,
+): Promise<TransactionActionState> {
+  const reason = (formData.get("reason") as string)?.trim();
+  if (!reason) {
+    return { error: "A reason is required to void a transaction." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("void_transaction", {
+    p_transaction_id: transactionId,
+    p_reason: reason,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/activity");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+  return { error: null };
+}

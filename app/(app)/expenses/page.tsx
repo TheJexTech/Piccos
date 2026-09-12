@@ -45,7 +45,7 @@ export default async function ExpensesPage() {
       .order("name", { ascending: true }),
     supabase
       .from("expenses")
-      .select("id, amount, description, expense_date, expense_categories(name)")
+      .select("id, amount, description, expense_date, correction_of_id, expense_categories(name)")
       .eq("business_id", businessId)
       .order("expense_date", { ascending: false })
       .limit(50)
@@ -64,7 +64,7 @@ export default async function ExpensesPage() {
         <NewExpenseForm businessId={businessId} categories={categories ?? []} />
       </div>
 
-      <ExpensesList expenses={expenses ?? []} />
+      <ExpensesList expenses={expenses ?? []} isOwner={isOwner} />
     </div>
   );
 }

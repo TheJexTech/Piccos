@@ -9,5 +9,6 @@ export type Expense = {
   amount: number;
   description: string | null;
   expense_date: string;
+  correction_of_id: string | null;
   expense_categories: { name: string } | null;
 };

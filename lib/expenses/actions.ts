@@ -65,3 +65,29 @@ export async function createExpense(
   revalidatePath("/expenses");
   return { error: null };
 }
+
+export async function voidExpense(
+  expenseId: string,
+  _prevState: ExpenseActionState,
+  formData: FormData,
+): Promise<ExpenseActionState> {
+  const reason = (formData.get("reason") as string)?.trim();
+  if (!reason) {
+    return { error: "A reason is required to void an expense." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("void_expense", {
+    p_expense_id: expenseId,
+    p_reason: reason,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/expenses");
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+  return { error: null };
+}

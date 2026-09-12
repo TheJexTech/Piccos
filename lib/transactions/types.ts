@@ -15,6 +15,7 @@ export type Transaction = {
   amount: number;
   payment_method: string;
   service_name: string;
+  correction_of_id: string | null;
   staff: { display_name: string } | null;
   stations: { name: string } | null;
 };

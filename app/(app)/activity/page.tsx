@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { NewTransactionForm } from "./new-transaction-form";
-import { TransactionsList } from "@/components/transactions-list";
+import { ActivityList } from "./activity-list";
 import type { Transaction } from "@/lib/transactions/types";
 
 export default async function ActivityPage() {
@@ -13,7 +13,7 @@ export default async function ActivityPage() {
 
   const { data: membership } = await supabase
     .from("business_members")
-    .select("business_id")
+    .select("business_id, role")
     .eq("user_id", user.id)
     .eq("status", "active")
     .limit(1)
@@ -21,6 +21,7 @@ export default async function ActivityPage() {
   if (!membership) redirect("/onboarding/business");
 
   const businessId = membership.business_id;
+  const isOwner = membership.role === "owner";
 
   const [{ data: staff }, { data: stations }, { data: services }, { data: transactions }] =
     await Promise.all([
@@ -45,7 +46,7 @@ export default async function ActivityPage() {
       supabase
         .from("transactions")
         .select(
-          "id, transaction_date, amount, payment_method, service_name, staff:staff_id(display_name), stations:station_id(name)",
+          "id, transaction_date, amount, payment_method, service_name, correction_of_id, staff:staff_id(display_name), stations:station_id(name)",
         )
         .eq("business_id", businessId)
         .order("transaction_date", { ascending: false })
@@ -76,7 +77,7 @@ export default async function ActivityPage() {
         )}
       </div>
 
-      <TransactionsList transactions={transactions ?? []} />
+      <ActivityList transactions={transactions ?? []} isOwner={isOwner} />
     </div>
   );
 }

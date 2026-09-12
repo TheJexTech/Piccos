@@ -73,7 +73,7 @@ export default async function ReportsPage({
     supabase
       .from("transactions")
       .select(
-        "id, transaction_date, amount, payment_method, service_name, staff:staff_id(display_name), stations:station_id(name)",
+        "id, transaction_date, amount, payment_method, service_name, correction_of_id, staff:staff_id(display_name), stations:station_id(name)",
       )
       .eq("business_id", businessId)
       .gte("transaction_date", startUTC.toISOString())
@@ -82,7 +82,7 @@ export default async function ReportsPage({
       .returns<Transaction[]>(),
     supabase
       .from("expenses")
-      .select("id, amount, description, expense_date, expense_categories(name)")
+      .select("id, amount, description, expense_date, correction_of_id, expense_categories(name)")
       .eq("business_id", businessId)
       .gte("expense_date", resolved.startDateStr)
       .lte("expense_date", resolved.endDateStr)

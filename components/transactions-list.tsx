@@ -26,7 +26,7 @@ export function TransactionsList({
               {t.service_name} · {t.staff?.display_name ?? "Unknown staff"}
             </p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {new Date(t.transaction_date).toLocaleString()}
+              {new Date(t.transaction_date).toLocaleString("en-US")}
               {t.stations?.name ? ` · ${t.stations.name}` : ""}
             </p>
           </div>

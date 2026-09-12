@@ -2,49 +2,57 @@
 
 import { useState } from "react";
 import { useActionState } from "react";
-import { voidExpense } from "@/lib/expenses/actions";
-import { initialExpenseActionState } from "@/lib/expenses/types";
-import type { Expense } from "@/lib/expenses/types";
+import { voidTransaction } from "@/lib/transactions/actions";
+import { initialTransactionActionState, PAYMENT_METHODS } from "@/lib/transactions/types";
+import type { Transaction } from "@/lib/transactions/types";
 
-export function ExpensesList({
-  expenses,
+const PAYMENT_LABELS = Object.fromEntries(PAYMENT_METHODS.map((m) => [m.value, m.label]));
+
+export function ActivityList({
+  transactions,
   isOwner,
 }: {
-  expenses: Expense[];
+  transactions: Transaction[];
   isOwner: boolean;
 }) {
-  if (expenses.length === 0) {
-    return (
-      <p className="mt-8 text-sm text-zinc-500 dark:text-zinc-400">No expenses recorded yet.</p>
-    );
+  if (transactions.length === 0) {
+    return <p className="mt-8 text-sm text-zinc-500 dark:text-zinc-400">No activity yet.</p>;
   }
 
   const voidedIds = new Set(
-    expenses.filter((e) => e.correction_of_id).map((e) => e.correction_of_id),
+    transactions.filter((t) => t.correction_of_id).map((t) => t.correction_of_id),
   );
 
   return (
     <ul className="mt-8 flex flex-col gap-2">
-      {expenses.map((e) => (
-        <ExpenseRow key={e.id} expense={e} isOwner={isOwner} isVoided={voidedIds.has(e.id)} />
+      {transactions.map((t) => (
+        <ActivityRow
+          key={t.id}
+          transaction={t}
+          isOwner={isOwner}
+          isVoided={voidedIds.has(t.id)}
+        />
       ))}
     </ul>
   );
 }
 
-function ExpenseRow({
-  expense: e,
+function ActivityRow({
+  transaction: t,
   isOwner,
   isVoided,
 }: {
-  expense: Expense;
+  transaction: Transaction;
   isOwner: boolean;
   isVoided: boolean;
 }) {
   const [showForm, setShowForm] = useState(false);
-  const voidExpenseWithId = voidExpense.bind(null, e.id);
-  const [state, formAction, pending] = useActionState(voidExpenseWithId, initialExpenseActionState);
-  const isCorrection = e.correction_of_id != null;
+  const voidTransactionWithId = voidTransaction.bind(null, t.id);
+  const [state, formAction, pending] = useActionState(
+    voidTransactionWithId,
+    initialTransactionActionState,
+  );
+  const isCorrection = t.correction_of_id != null;
   const canVoid = isOwner && !isCorrection && !isVoided;
 
   return (
@@ -52,16 +60,21 @@ function ExpenseRow({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-black dark:text-zinc-50">
-            {e.description || e.expense_categories?.name || "Expense"}
+            {t.service_name} · {t.staff?.display_name ?? "Unknown staff"}
             {isCorrection && <span className="ml-2 text-xs text-amber-600">Correction</span>}
             {isVoided && <span className="ml-2 text-xs text-amber-600">Voided</span>}
           </p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {new Date(e.expense_date).toLocaleDateString("en-US")}
-            {e.expense_categories?.name ? ` · ${e.expense_categories.name}` : ""}
+            {new Date(t.transaction_date).toLocaleString("en-US")}
+            {t.stations?.name ? ` · ${t.stations.name}` : ""}
           </p>
         </div>
-        <p className="text-black dark:text-zinc-50">{Number(e.amount).toFixed(2)}</p>
+        <div className="text-right">
+          <p className="text-black dark:text-zinc-50">{Number(t.amount).toFixed(2)}</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {PAYMENT_LABELS[t.payment_method] ?? t.payment_method}
+          </p>
+        </div>
       </div>
 
       {canVoid && (

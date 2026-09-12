@@ -39,7 +39,7 @@ export function StaffList({
             <div>
               <p className="font-medium text-black dark:text-zinc-50">{member.display_name}</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Joined {new Date(member.joined_at).toLocaleDateString()}
+                Joined {new Date(member.joined_at).toLocaleDateString("en-US")}
               </p>
             </div>
             {canManage ? (

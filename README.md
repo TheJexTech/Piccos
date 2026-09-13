@@ -44,6 +44,51 @@ admin operations exist.
 - Financial records are never silently overwritten — corrections preserve the
   original event plus who/when/what/why.
 
+## Deployment (Vercel)
+
+1. Push this repo to a GitHub repository (not done automatically — this repo
+   currently has no remote configured).
+2. Import the repo into a new Vercel project.
+3. In the Vercel project's Environment Variables, set: `NEXT_PUBLIC_SUPABASE_URL`,
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` (the production
+   domain, e.g. `https://piccos.app`), `ANTHROPIC_API_KEY`. Leave
+   `SUPABASE_SERVICE_ROLE_KEY` unset unless a server-only admin operation
+   that must bypass RLS is added later — nothing in the app currently reads it.
+4. In the Supabase dashboard (Authentication → URL Configuration), set **Site
+   URL** to the production domain and add it to **Redirect URLs** — email
+   confirmation and password reset links are built from this and will silently
+   point at `localhost` otherwise.
+5. **Before real users sign up:** re-enable "Confirm email" in Supabase
+   Authentication settings and configure a custom SMTP provider. Both were
+   disabled during development (M1) because of free-tier email rate limits —
+   this is a deliberate, tracked gap, not an oversight, but it must be closed
+   before launch or anyone can sign up with an email they don't own.
+
+## Monitoring
+
+V1 deliberately doesn't add a dedicated error-tracking dependency (keeping
+dependencies lean). Instead:
+
+- **Application errors** are caught by `app/error.tsx` / `app/global-error.tsx`,
+  logged via `console.error`, and land in Vercel's function logs.
+- **Database/auth activity** (slow queries, failed logins, RLS denials) is
+  visible in the Supabase dashboard's Logs section.
+- **Business-level audit trail** (voids, corrections) is already tracked in
+  `audit_logs` and viewable in-app by the owner (M11).
+
+If usage grows enough that log-diving becomes impractical, revisit adding a
+dedicated error-tracking tool at that point — not before.
+
+## Known limitations to revisit post-launch
+
+- **Ask Piccos has no rate limiting.** Any authenticated member can call it
+  as often as they want, and each call is a real Claude API cost. Fine for a
+  small pilot; add a per-user/per-business cap before wider rollout.
+- **No UI yet links a `staff` row to a real login account.** A barber who
+  signs up currently sees zero of their own transactions until an owner (or
+  a future admin tool) sets `staff.profile_id` to their user id — the RLS
+  policies already support it, but there's no in-app flow to do it.
+
 ## Roadmap
 
 This repo builds V1 only (auth, shop setup, staff, stations, services,

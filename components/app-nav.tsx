@@ -30,6 +30,9 @@ export function AppNav({ businessName }: { businessName: string }) {
           <Link href="/settings/audit-log" className="hover:text-black dark:hover:text-zinc-50">
             Audit Log
           </Link>
+          <Link href="/ask" className="hover:text-black dark:hover:text-zinc-50">
+            Ask Piccos
+          </Link>
         </nav>
       </div>
       <div className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">

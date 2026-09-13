@@ -1,4 +1,4 @@
-import { getBusinessTodayDateStr } from "@/lib/dashboard/timezone";
+import { getBusinessTodayDateStr, getWeekRange } from "@/lib/dashboard/timezone";
 
 export type ReportPeriod = "daily" | "weekly" | "monthly" | "custom";
 
@@ -29,25 +29,6 @@ function formatMonth(monthStr: string): string {
     month: "long",
     timeZone: "UTC",
   });
-}
-
-// Monday–Sunday week containing dateStr. Pure calendar-date arithmetic
-// (no timezone offset involved — dateStr is already a local calendar
-// date, we're just finding the surrounding week for it).
-function getWeekRange(dateStr: string): { startDateStr: string; endDateStr: string } {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const noon = new Date(Date.UTC(y, m - 1, d, 12));
-  const dayOfWeek = noon.getUTCDay(); // 0 = Sunday .. 6 = Saturday
-  const diffToMonday = (dayOfWeek + 6) % 7;
-
-  const monday = new Date(noon);
-  monday.setUTCDate(monday.getUTCDate() - diffToMonday);
-  const sunday = new Date(monday);
-  sunday.setUTCDate(monday.getUTCDate() + 6);
-
-  const fmt = (dt: Date) =>
-    `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
-  return { startDateStr: fmt(monday), endDateStr: fmt(sunday) };
 }
 
 function lastDayOfMonth(year: number, month1to12: number): number {

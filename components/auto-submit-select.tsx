@@ -1,5 +1,7 @@
 "use client";
 
+import { selectClasses } from "@/components/ui/select-field";
+
 type Option = { value: string; label: string };
 
 export function AutoSubmitSelect({
@@ -19,7 +21,7 @@ export function AutoSubmitSelect({
         name={name}
         defaultValue={defaultValue}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
-        className="rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+        className={`${selectClasses()} py-1.5 text-xs`}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

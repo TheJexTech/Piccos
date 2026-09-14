@@ -1,31 +1,45 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getBusinessDateRanges } from "@/lib/dashboard/timezone";
+import { requireCurrentMembership } from "@/lib/business/current";
+import { getBusinessOutlets, resolveOutletId } from "@/lib/business/outlets";
+import { resolveReportPeriod, type ResolvedPeriod } from "@/lib/reports/period";
+import { localDateRangeToUTC } from "@/lib/dashboard/timezone";
 import { formatMoney } from "@/lib/dashboard/format";
-import { sum, groupSum } from "@/lib/dashboard/aggregate";
-import { StatCard } from "@/components/stat-card";
-import { TotalsList } from "@/components/totals-list";
+import { sum } from "@/lib/dashboard/aggregate";
+import { getRevenueSummary, getRevenueTrend, type RevenueDateRange } from "@/lib/revenue/aggregate";
+import { MetricCard } from "@/components/ui/metric-card";
+import { SectionCard } from "@/components/ui/section-card";
+import { TrendChart } from "@/components/ui/chart";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Avatar } from "@/components/ui/avatar";
+import { buttonClasses } from "@/components/ui/button";
+import { FinancialStatCard } from "./financial-stat-card";
+import { RevenueBreakdownCard } from "./revenue-breakdown-card";
+import { OutletSelector } from "./outlet-selector";
 
-type TxRow = { amount: number; staff: { display_name: string } | null };
-type ExpenseRow = { amount: number; expense_categories: { name: string } | null };
+function toRange(timezone: string, period: ResolvedPeriod): RevenueDateRange {
+  const { startUTC, endUTC } = localDateRangeToUTC(timezone, period.startDateStr, period.endDateStr);
+  return { startUTC, endUTC, startDateStr: period.startDateStr, endDateStr: period.endDateStr };
+}
 
-export default async function DashboardPage() {
+// Dashboard answers "how is my shop doing?" in one glance — the detailed
+// breakdowns (by staff, by service, tips) live on Revenue and Reports now,
+// not duplicated here.
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ outlet?: string }>;
+}) {
+  const params = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
-    .from("business_members")
-    .select("business_id, role")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .limit(1)
-    .maybeSingle();
-  if (!membership) redirect("/onboarding/business");
-
-  const businessId = membership.business_id;
+  const membership = await requireCurrentMembership(supabase, user.id);
+  const businessId = membership.businessId;
   const canSeeFullDashboard = membership.role === "owner" || membership.role === "secretary";
 
   const { data: business } = await supabase
@@ -36,136 +50,158 @@ export default async function DashboardPage() {
 
   const timezone = business?.timezone ?? "Africa/Lagos";
   const currency = business?.currency ?? "NGN";
-  const range = getBusinessDateRanges(timezone);
   const money = (n: number) => formatMoney(n, currency);
 
+  const todayPeriod = resolveReportPeriod(timezone, {});
+  const monthPeriod = resolveReportPeriod(timezone, { period: "monthly" });
+
   if (!canSeeFullDashboard) {
-    // Barber: RLS only returns their own transactions, and none of the
-    // expense data — a full owner-style dashboard would just render
-    // empty/misleading sections, so show a narrower view instead.
-    const [{ data: myTxToday }, { data: myTxMonth }] = await Promise.all([
-      supabase
-        .from("transactions")
-        .select("amount")
-        .eq("business_id", businessId)
-        .gte("transaction_date", range.startOfDay.toISOString())
-        .lt("transaction_date", range.startOfNextDay.toISOString()),
-      supabase
-        .from("transactions")
-        .select("amount")
-        .eq("business_id", businessId)
-        .gte("transaction_date", range.startOfMonth.toISOString())
-        .lt("transaction_date", range.startOfNextMonth.toISOString()),
+    // Barber: RLS scopes both queries to their own activity automatically —
+    // same zero-special-casing pattern used by Ask Piccos's snapshot. No
+    // outlet selector for this view — out of scope for this correction.
+    const [todaySummary, monthSummary] = await Promise.all([
+      getRevenueSummary(supabase, businessId, toRange(timezone, todayPeriod)),
+      getRevenueSummary(supabase, businessId, toRange(timezone, monthPeriod)),
     ]);
 
     return (
-      <div className="mx-auto max-w-2xl px-4 py-12">
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Your performance</h1>
-        <div className="mt-6 grid grid-cols-2 gap-4">
-          <StatCard label="Revenue today" value={money(sum(myTxToday))} />
-          <StatCard label="Revenue this month" value={money(sum(myTxMonth))} />
+      <div>
+        <h1 className="text-2xl font-semibold text-ink">Your performance</h1>
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <MetricCard label="Today's Revenue" value={money(todaySummary.serviceRevenue)} />
+          <MetricCard label="This month's Revenue" value={money(monthSummary.serviceRevenue)} />
         </div>
+        <Link href="/revenue" className={`${buttonClasses("secondary")} mt-6`}>
+          See full breakdown, including tips →
+        </Link>
       </div>
     );
   }
 
-  const [{ data: txToday }, { data: txMonth }, { data: txLastMonth }, { data: expToday }, { data: expMonth }] =
-    await Promise.all([
-      supabase
-        .from("transactions")
-        .select("amount, staff:staff_id(display_name)")
-        .eq("business_id", businessId)
-        .gte("transaction_date", range.startOfDay.toISOString())
-        .lt("transaction_date", range.startOfNextDay.toISOString())
-        .returns<TxRow[]>(),
-      supabase
-        .from("transactions")
-        .select("amount, staff:staff_id(display_name)")
-        .eq("business_id", businessId)
-        .gte("transaction_date", range.startOfMonth.toISOString())
-        .lt("transaction_date", range.startOfNextMonth.toISOString())
-        .returns<TxRow[]>(),
-      supabase
-        .from("transactions")
-        .select("amount")
-        .eq("business_id", businessId)
-        .gte("transaction_date", range.startOfLastMonth.toISOString())
-        .lt("transaction_date", range.startOfMonth.toISOString()),
-      supabase
-        .from("expenses")
-        .select("amount")
-        .eq("business_id", businessId)
-        .eq("expense_date", range.todayDateStr),
-      supabase
-        .from("expenses")
-        .select("amount, expense_categories(name)")
-        .eq("business_id", businessId)
-        .gte("expense_date", range.startOfMonthDateStr)
-        .returns<ExpenseRow[]>(),
-    ]);
+  // Outlets = this business's stations (see lib/business/outlets.ts).
+  // Defaults to "All Outlets" combined when nothing is selected yet.
+  const outlets = await getBusinessOutlets(supabase, businessId);
+  const selectedOutlet = resolveOutletId(params.outlet, outlets);
+  const outletQuery = `?outlet=${selectedOutlet}`;
+  const stationId = selectedOutlet === "all" ? undefined : selectedOutlet;
 
-  const revenueToday = sum(txToday);
-  const revenueMonth = sum(txMonth);
-  const revenueLastMonth = sum(txLastMonth);
+  let expTodayQuery = supabase
+    .from("expenses")
+    .select("amount")
+    .eq("business_id", businessId)
+    .eq("expense_date", todayPeriod.startDateStr);
+  let expMonthQuery = supabase
+    .from("expenses")
+    .select("amount")
+    .eq("business_id", businessId)
+    .gte("expense_date", monthPeriod.startDateStr)
+    .lte("expense_date", monthPeriod.endDateStr);
+  if (stationId) {
+    expTodayQuery = expTodayQuery.eq("station_id", stationId);
+    expMonthQuery = expMonthQuery.eq("station_id", stationId);
+  }
+
+  const [todaySummary, monthSummary, { data: expToday }, { data: expMonth }, trend] = await Promise.all([
+    getRevenueSummary(supabase, businessId, toRange(timezone, todayPeriod), stationId),
+    getRevenueSummary(supabase, businessId, toRange(timezone, monthPeriod), stationId),
+    expTodayQuery,
+    expMonthQuery,
+    getRevenueTrend(supabase, businessId, timezone, toRange(timezone, monthPeriod), stationId),
+  ]);
+
   const expensesToday = sum(expToday);
   const expensesMonth = sum(expMonth);
+  // Estimated profit = service revenue + product sales - operating expenses
+  // - product cost of goods sold. Operating expenses and product COGS are
+  // two separate cost categories from two separate tables, each summed
+  // once — nothing here double-counts a cost already represented elsewhere.
+  const profitToday = todaySummary.totalRevenue - expensesToday - todaySummary.productCOGS;
+  const profitMonth = monthSummary.totalRevenue - expensesMonth - monthSummary.productCOGS;
 
-  const profitToday = revenueToday - expensesToday;
-  const profitMonth = revenueMonth - expensesMonth;
-
-  const barberTotals = groupSum(
-    txMonth,
-    (t) => t.staff?.display_name ?? "Unassigned",
-    (t) => Number(t.amount),
-  );
-  const categoryTotals = groupSum(
-    expMonth,
-    (e) => e.expense_categories?.name ?? "Uncategorized",
-    (e) => Number(e.amount),
-  );
-
-  const revenueTrendPct =
-    revenueLastMonth > 0 ? ((revenueMonth - revenueLastMonth) / revenueLastMonth) * 100 : null;
+  const topStaff = monthSummary.revenueByStaff.filter((s) => s.label !== "Unassigned").slice(0, 5);
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Dashboard</h1>
-
-      <div className="mt-6 grid grid-cols-3 gap-4">
-        <StatCard label="Revenue today" value={money(revenueToday)} />
-        <StatCard label="Expenses today" value={money(expensesToday)} />
-        <StatCard label="Est. profit today" value={money(profitToday)} />
+    <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <h1 className="text-2xl font-semibold text-ink">Dashboard</h1>
+        <OutletSelector outlets={outlets} selected={selectedOutlet} />
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-4">
-        <StatCard label="Revenue this month" value={money(revenueMonth)} />
-        <StatCard label="Expenses this month" value={money(expensesMonth)} />
-        <StatCard label="Est. profit this month" value={money(profitMonth)} />
-      </div>
-
-      {revenueTrendPct !== null && (
-        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-          Revenue is {revenueTrendPct >= 0 ? "up" : "down"} {Math.abs(revenueTrendPct).toFixed(0)}%
-          vs last month.
-        </p>
-      )}
-
-      <div className="mt-10 grid grid-cols-2 gap-8">
-        <TotalsList
-          title="Barber performance (this month)"
-          emptyMessage="No transactions yet this month."
-          totals={barberTotals.map((t) => ({ label: t.label, formattedTotal: money(t.total) }))}
-        />
-        <TotalsList
-          title="Expense breakdown (this month)"
-          emptyMessage="No expenses recorded this month."
-          totals={categoryTotals.map((t) => ({ label: t.label, formattedTotal: money(t.total) }))}
+      {/* Revenue's three figures (Total/Service/Product) share one period
+          toggle; Estimated Profit has its own independent one — the full
+          period-by-period breakdown (by staff, by service, by product,
+          tips, trends) stays on the dedicated Revenue page. */}
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <RevenueBreakdownCard
+            todayValues={{
+              serviceRevenue: money(todaySummary.serviceRevenue),
+              productRevenue: money(todaySummary.productRevenue),
+              totalRevenue: money(todaySummary.totalRevenue),
+            }}
+            monthValues={{
+              serviceRevenue: money(monthSummary.serviceRevenue),
+              productRevenue: money(monthSummary.productRevenue),
+              totalRevenue: money(monthSummary.totalRevenue),
+            }}
+          />
+        </div>
+        <FinancialStatCard
+          label="Estimated Profit"
+          todayValue={money(profitToday)}
+          monthValue={money(profitMonth)}
         />
       </div>
 
-      <p className="mt-8 text-xs text-zinc-500 dark:text-zinc-400">
-        Estimated operating profit = recorded service revenue − recorded operating expenses. Not a
-        formal accounting figure.
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <SectionCard title="Revenue trend" description="This month, by day">
+            <TrendChart
+              data={trend.map((t) => ({ label: t.label, value: t.total }))}
+              formatValue={money}
+            />
+          </SectionCard>
+        </div>
+
+        {/* This Month only — deliberately independent of the Revenue
+            card's own Today/This-month toggle. Product sales aren't
+            attributed to a staff member (no such relationship exists), so
+            this ranks service revenue only, grouped by staff id (never by
+            name — see lib/revenue/aggregate.ts). */}
+        <SectionCard title="Best Performing Staff" description="This month">
+          {topStaff.length === 0 ? (
+            <EmptyState message="No revenue recorded yet this month." />
+          ) : (
+            <ol className="flex flex-col gap-3">
+              {topStaff.map((s, i) => (
+                <li key={`${s.label}-${i}`} className="flex items-center gap-3">
+                  <span className="w-4 text-xs font-medium text-muted">{i + 1}</span>
+                  <Avatar name={s.label} size="sm" />
+                  <span className="flex-1 truncate text-sm text-ink">{s.label}</span>
+                  <span className="text-sm font-medium text-ink">{money(s.total)}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </SectionCard>
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link href="/activity" className={buttonClasses("primary")}>
+          Record Activity
+        </Link>
+        <Link href={`/revenue${outletQuery}`} className={buttonClasses("secondary")}>
+          View Revenue
+        </Link>
+        <Link href={`/reports${outletQuery}`} className={buttonClasses("secondary")}>
+          View Reports
+        </Link>
+      </div>
+
+      <p className="mt-6 text-xs text-muted">
+        Estimated profit = service revenue + product sales − operating expenses − product cost of
+        goods sold. Tips are never included in revenue or estimated profit. Not a formal accounting
+        figure.
       </p>
     </div>
   );

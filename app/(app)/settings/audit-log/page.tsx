@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireCurrentMembership } from "@/lib/business/current";
 import type { AuditLogEntry } from "@/lib/audit/types";
 
 function summarizeOldValues(entry: AuditLogEntry): string | null {
@@ -21,14 +22,7 @@ export default async function AuditLogPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
-    .from("business_members")
-    .select("business_id, role")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .limit(1)
-    .maybeSingle();
-  if (!membership) redirect("/onboarding/business");
+  const membership = await requireCurrentMembership(supabase, user.id);
 
   if (membership.role !== "owner") {
     return (
@@ -44,7 +38,7 @@ export default async function AuditLogPage() {
   const { data: logs } = await supabase
     .from("audit_logs")
     .select("id, action, entity_type, entity_id, old_values, reason, created_at")
-    .eq("business_id", membership.business_id)
+    .eq("business_id", membership.businessId)
     .order("created_at", { ascending: false })
     .limit(100)
     .returns<AuditLogEntry[]>();

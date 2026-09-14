@@ -1,26 +1,72 @@
 @import "tailwindcss";
 
+/*
+ * Bruno's Barbers visual reference: a fixed dark sidebar (#0B0807) beside
+ * light content (#FCFCFC), warm brown/tan accents instead of plain grays.
+ * This is a fixed two-tone shell (not an OS light/dark toggle) — every
+ * page uses the same tokens below.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-app-bg: #fcfcfc;
+  --color-surface: #ffffff;
+  --color-border: #ece5df;
+  --color-border-strong: #ddd2c8;
+
+  --color-ink: #0b0807;
+  --color-ink-secondary: #6c5b50;
+  --color-muted: #8b8188;
+
+  --color-brown-900: #493527;
+  --color-brown-700: #8b7161;
+  --color-tan: #bfb0a4;
+
+  --color-sidebar: #0b0807;
+  --color-sidebar-border: #241d1a;
+  --color-sidebar-foreground: #fcfcfc;
+  --color-sidebar-muted: #bfb0a4;
+  --color-sidebar-active: #1c1512;
+
+  --color-success: #2f6b4f;
+  --color-success-bg: #e7f3ec;
+  --color-danger: #a3372c;
+  --color-danger-bg: #fbeae7;
+  --color-warning: #8a6a1e;
+  --color-warning-bg: #f8f0dc;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-app-bg: var(--color-app-bg);
+  --color-surface: var(--color-surface);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+
+  --color-ink: var(--color-ink);
+  --color-ink-secondary: var(--color-ink-secondary);
+  --color-muted: var(--color-muted);
+
+  --color-brown-900: var(--color-brown-900);
+  --color-brown-700: var(--color-brown-700);
+  --color-tan: var(--color-tan);
+
+  --color-sidebar: var(--color-sidebar);
+  --color-sidebar-border: var(--color-sidebar-border);
+  --color-sidebar-foreground: var(--color-sidebar-foreground);
+  --color-sidebar-muted: var(--color-sidebar-muted);
+  --color-sidebar-active: var(--color-sidebar-active);
+
+  --color-success: var(--color-success);
+  --color-success-bg: var(--color-success-bg);
+  --color-danger: var(--color-danger);
+  --color-danger-bg: var(--color-danger-bg);
+  --color-warning: var(--color-warning);
+  --color-warning-bg: var(--color-warning-bg);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-app-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }

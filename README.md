@@ -92,6 +92,6 @@ dedicated error-tracking tool at that point — not before.
 ## Roadmap
 
 This repo builds V1 only (auth, shop setup, staff, stations, services,
-transactions, expenses, materials, dashboard, reports, permissions, audit
+transactions, expenses, supplies, dashboard, reports, permissions, audit
 trail, Ask Piccos). Operations, Academy, Talent, Find, and Market are later
 versions — not implemented here.

@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useActionState } from "react";
 import { voidExpense } from "@/lib/expenses/actions";
 import { initialExpenseActionState } from "@/lib/expenses/types";
+import { SectionCard } from "@/components/ui/section-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Table, Th, Td } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import type { Expense } from "@/lib/expenses/types";
 
 export function ExpensesList({
@@ -13,22 +17,33 @@ export function ExpensesList({
   expenses: Expense[];
   isOwner: boolean;
 }) {
-  if (expenses.length === 0) {
-    return (
-      <p className="mt-8 text-sm text-zinc-500 dark:text-zinc-400">No expenses recorded yet.</p>
-    );
-  }
-
   const voidedIds = new Set(
     expenses.filter((e) => e.correction_of_id).map((e) => e.correction_of_id),
   );
 
   return (
-    <ul className="mt-8 flex flex-col gap-2">
-      {expenses.map((e) => (
-        <ExpenseRow key={e.id} expense={e} isOwner={isOwner} isVoided={voidedIds.has(e.id)} />
-      ))}
-    </ul>
+    <SectionCard title="Expenses">
+      {expenses.length === 0 ? (
+        <EmptyState message="No expenses recorded yet." />
+      ) : (
+        <Table>
+          <thead>
+            <tr>
+              <Th>Description</Th>
+              <Th>Category</Th>
+              <Th align="right">Amount</Th>
+              <Th>Date</Th>
+              {isOwner && <Th align="right">Action</Th>}
+            </tr>
+          </thead>
+          <tbody>
+            {expenses.map((e) => (
+              <ExpenseRow key={e.id} expense={e} isOwner={isOwner} isVoided={voidedIds.has(e.id)} />
+            ))}
+          </tbody>
+        </Table>
+      )}
+    </SectionCard>
   );
 }
 
@@ -48,55 +63,47 @@ function ExpenseRow({
   const canVoid = isOwner && !isCorrection && !isVoided;
 
   return (
-    <li className="rounded border border-zinc-200 p-3 text-sm dark:border-zinc-800">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-black dark:text-zinc-50">
-            {e.description || e.expense_categories?.name || "Expense"}
-            {isCorrection && <span className="ml-2 text-xs text-amber-600">Correction</span>}
-            {isVoided && <span className="ml-2 text-xs text-amber-600">Voided</span>}
-          </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {new Date(e.expense_date).toLocaleDateString("en-US")}
-            {e.expense_categories?.name ? ` · ${e.expense_categories.name}` : ""}
-          </p>
-        </div>
-        <p className="text-black dark:text-zinc-50">{Number(e.amount).toFixed(2)}</p>
-      </div>
-
-      {canVoid && (
-        <div className="mt-2">
-          {showForm ? (
-            <form action={formAction} className="flex items-center gap-2">
-              <input
-                name="reason"
-                placeholder="Reason for voiding"
-                required
-                className="rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              />
-              <button type="submit" disabled={pending} className="text-sm text-red-600 hover:underline">
-                {pending ? "Voiding…" : "Confirm void"}
+    <tr>
+      <Td>
+        <span className="flex items-center gap-2">
+          {e.description || e.expense_categories?.name || "Expense"}
+          {isCorrection && <Badge tone="warning">Correction</Badge>}
+          {isVoided && <Badge tone="warning">Voided</Badge>}
+        </span>
+      </Td>
+      <Td>{e.expense_categories?.name ?? "—"}</Td>
+      <Td align="right">{Number(e.amount).toFixed(2)}</Td>
+      <Td>{new Date(e.expense_date).toLocaleDateString("en-US")}</Td>
+      {isOwner && (
+        <Td align="right">
+          {canVoid &&
+            (showForm ? (
+              <form action={formAction} className="flex items-center justify-end gap-2">
+                <input
+                  name="reason"
+                  placeholder="Reason for voiding"
+                  required
+                  className="rounded-lg border border-border-strong bg-surface px-2 py-1 text-sm text-ink focus:border-brown-700 focus:outline-none"
+                />
+                <button type="submit" disabled={pending} className="text-sm text-danger hover:underline">
+                  {pending ? "Voiding…" : "Confirm"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="text-sm text-muted hover:underline"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <button type="button" onClick={() => setShowForm(true)} className="text-sm text-danger hover:underline">
+                Void
               </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="text-sm text-zinc-500 hover:underline dark:text-zinc-400"
-              >
-                Cancel
-              </button>
-            </form>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              className="text-sm text-red-600 hover:underline"
-            >
-              Void
-            </button>
-          )}
-          {state.error && <p className="mt-1 text-sm text-red-600">{state.error}</p>}
-        </div>
+            ))}
+          {state.error && <p className="mt-1 text-sm text-danger">{state.error}</p>}
+        </Td>
       )}
-    </li>
+    </tr>
   );
 }

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireCurrentMembership } from "@/lib/business/current";
 import { AskForm } from "./ask-form";
 
 export default async function AskPage() {
@@ -9,14 +10,7 @@ export default async function AskPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
-    .from("business_members")
-    .select("business_id")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .limit(1)
-    .maybeSingle();
-  if (!membership) redirect("/onboarding/business");
+  await requireCurrentMembership(supabase, user.id);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">

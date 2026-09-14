@@ -16,6 +16,8 @@ export type Transaction = {
   payment_method: string;
   service_name: string;
   correction_of_id: string | null;
+  tip_amount: number;
+  tip_payment_method: string | null;
   staff: { display_name: string } | null;
   stations: { name: string } | null;
 };

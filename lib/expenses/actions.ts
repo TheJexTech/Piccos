@@ -48,6 +48,7 @@ export async function createExpense(
   const categoryId = (formData.get("category_id") as string) || null;
   const description = (formData.get("description") as string) || null;
   const expenseDateRaw = formData.get("expense_date") as string;
+  const stationId = (formData.get("station_id") as string) || null;
 
   const supabase = await createClient();
   const { error } = await supabase.from("expenses").insert({
@@ -55,6 +56,7 @@ export async function createExpense(
     category_id: categoryId,
     amount,
     description,
+    station_id: stationId,
     ...(expenseDateRaw ? { expense_date: expenseDateRaw } : {}),
   });
 

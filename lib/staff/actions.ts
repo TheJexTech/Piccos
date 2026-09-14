@@ -31,6 +31,14 @@ export async function createStaff(
   return { error: null };
 }
 
+export async function updateStaffName(staffId: string, formData: FormData) {
+  const displayName = (formData.get("display_name") as string)?.trim();
+  if (!displayName) return;
+  const supabase = await createClient();
+  await supabase.from("staff").update({ display_name: displayName }).eq("id", staffId);
+  revalidatePath("/shop/staff");
+}
+
 export async function updateStaffStation(staffId: string, formData: FormData) {
   const stationId = (formData.get("station_id") as string) || null;
   const supabase = await createClient();

@@ -2,6 +2,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentMembership } from "@/lib/business/current";
 import { buildBusinessSnapshot } from "@/lib/ask/snapshot";
 import type { AskActionState } from "@/lib/ask/types";
 
@@ -26,13 +27,7 @@ export async function askPiccos(
     return { error: "You must be signed in.", answer: null };
   }
 
-  const { data: membership } = await supabase
-    .from("business_members")
-    .select("business_id, role")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .limit(1)
-    .maybeSingle();
+  const membership = await getCurrentMembership(supabase, user.id);
   if (!membership) {
     return { error: "No business found for your account.", answer: null };
   }
@@ -40,7 +35,7 @@ export async function askPiccos(
   const { data: business } = await supabase
     .from("businesses")
     .select("name, timezone, currency")
-    .eq("id", membership.business_id)
+    .eq("id", membership.businessId)
     .single();
 
   const timezone = business?.timezone ?? "Africa/Lagos";
@@ -49,9 +44,9 @@ export async function askPiccos(
   // Built from the caller's own RLS-scoped client — a barber's snapshot
   // naturally only contains their own transactions, with zero special-
   // casing needed here for role.
-  const snapshot = await buildBusinessSnapshot(supabase, membership.business_id, timezone, currency);
+  const snapshot = await buildBusinessSnapshot(supabase, membership.businessId, timezone, currency);
 
-  const system = `You are Ask Piccos, a business assistant inside the Piccos barber shop management app. Answer the user's question using ONLY the JSON business data snapshot below — never invent numbers that aren't in it. All amounts are in ${currency}. If the data doesn't contain what's needed to answer, say so plainly instead of guessing. Be concise and specific, referencing actual figures from the snapshot.
+  const system = `You are Ask Piccos, a business assistant inside the Piccos barber shop management app. Answer the user's question using ONLY the JSON business data snapshot below — never invent numbers that aren't in it. All amounts are in ${currency}. Each period's "revenue" and "tips" are separate figures — tips are never included in revenue or profit; if the user asks about total money received, add revenue and tips together explicitly. If the data doesn't contain what's needed to answer, say so plainly instead of guessing. Be concise and specific, referencing actual figures from the snapshot.
 
 Business: ${business?.name ?? "this business"}
 The user's role is: ${membership.role}

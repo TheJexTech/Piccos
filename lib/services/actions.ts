@@ -30,7 +30,6 @@ export async function createService(
   const { error } = await supabase.from("services").insert({
     business_id: businessId,
     name,
-    description: (formData.get("description") as string) || null,
     price,
   });
 
@@ -62,7 +61,6 @@ export async function updateService(
     .from("services")
     .update({
       name,
-      description: (formData.get("description") as string) || null,
       price,
       status: (formData.get("status") as string) || "active",
     })

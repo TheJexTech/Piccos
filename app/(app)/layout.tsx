@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppNav } from "@/components/app-nav";
+import { requireCurrentMembership } from "@/lib/business/current";
+import { Sidebar } from "@/components/sidebar";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -9,28 +10,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
-    .from("business_members")
-    .select("business_id")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .limit(1)
-    .maybeSingle();
-
-  if (!membership) {
-    redirect("/onboarding/business");
-  }
-
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("name")
-    .eq("id", membership.business_id)
-    .single();
+  const membership = await requireCurrentMembership(supabase, user.id);
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-black">
-      <AppNav businessName={business?.name ?? ""} />
-      <main className="flex-1">{children}</main>
+    <div className="min-h-screen bg-app-bg">
+      <Sidebar role={membership.role} email={user.email ?? ""} />
+      <div className="lg:pl-64">
+        <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">{children}</main>
+      </div>
     </div>
   );
 }

@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useActionState } from "react";
 import { voidTransaction } from "@/lib/transactions/actions";
 import { initialTransactionActionState, PAYMENT_METHODS } from "@/lib/transactions/types";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Table, Th, Td } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import type { Transaction } from "@/lib/transactions/types";
 
 const PAYMENT_LABELS = Object.fromEntries(PAYMENT_METHODS.map((m) => [m.value, m.label]));
@@ -16,7 +19,7 @@ export function ActivityList({
   isOwner: boolean;
 }) {
   if (transactions.length === 0) {
-    return <p className="mt-8 text-sm text-zinc-500 dark:text-zinc-400">No activity yet.</p>;
+    return <EmptyState message="No activity yet." />;
   }
 
   const voidedIds = new Set(
@@ -24,16 +27,24 @@ export function ActivityList({
   );
 
   return (
-    <ul className="mt-8 flex flex-col gap-2">
-      {transactions.map((t) => (
-        <ActivityRow
-          key={t.id}
-          transaction={t}
-          isOwner={isOwner}
-          isVoided={voidedIds.has(t.id)}
-        />
-      ))}
-    </ul>
+    <Table>
+      <thead>
+        <tr>
+          <Th>Service</Th>
+          <Th>Staff</Th>
+          <Th>Outlet</Th>
+          <Th align="right">Amount</Th>
+          <Th>Payment</Th>
+          <Th>Date</Th>
+          {isOwner && <Th align="right">Action</Th>}
+        </tr>
+      </thead>
+      <tbody>
+        {transactions.map((t) => (
+          <ActivityRow key={t.id} transaction={t} isOwner={isOwner} isVoided={voidedIds.has(t.id)} />
+        ))}
+      </tbody>
+    </Table>
   );
 }
 
@@ -56,60 +67,55 @@ function ActivityRow({
   const canVoid = isOwner && !isCorrection && !isVoided;
 
   return (
-    <li className="rounded border border-zinc-200 p-3 text-sm dark:border-zinc-800">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-black dark:text-zinc-50">
-            {t.service_name} · {t.staff?.display_name ?? "Unknown staff"}
-            {isCorrection && <span className="ml-2 text-xs text-amber-600">Correction</span>}
-            {isVoided && <span className="ml-2 text-xs text-amber-600">Voided</span>}
+    <tr>
+      <Td>
+        <span className="flex items-center gap-2">
+          {t.service_name}
+          {isCorrection && <Badge tone="warning">Correction</Badge>}
+          {isVoided && <Badge tone="warning">Voided</Badge>}
+        </span>
+        {Number(t.tip_amount) > 0 && (
+          <p className="mt-0.5 text-xs text-muted">
+            Tip: {Number(t.tip_amount).toFixed(2)}
+            {t.tip_payment_method ? ` (${PAYMENT_LABELS[t.tip_payment_method] ?? t.tip_payment_method})` : ""}
           </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {new Date(t.transaction_date).toLocaleString("en-US")}
-            {t.stations?.name ? ` · ${t.stations.name}` : ""}
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-black dark:text-zinc-50">{Number(t.amount).toFixed(2)}</p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {PAYMENT_LABELS[t.payment_method] ?? t.payment_method}
-          </p>
-        </div>
-      </div>
-
-      {canVoid && (
-        <div className="mt-2">
-          {showForm ? (
-            <form action={formAction} className="flex items-center gap-2">
-              <input
-                name="reason"
-                placeholder="Reason for voiding"
-                required
-                className="rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              />
-              <button type="submit" disabled={pending} className="text-sm text-red-600 hover:underline">
-                {pending ? "Voiding…" : "Confirm void"}
+        )}
+      </Td>
+      <Td>{t.staff?.display_name ?? "Unknown staff"}</Td>
+      <Td>{t.stations?.name ?? "—"}</Td>
+      <Td align="right">{Number(t.amount).toFixed(2)}</Td>
+      <Td>{PAYMENT_LABELS[t.payment_method] ?? t.payment_method}</Td>
+      <Td>{new Date(t.transaction_date).toLocaleString("en-US")}</Td>
+      {isOwner && (
+        <Td align="right">
+          {canVoid &&
+            (showForm ? (
+              <form action={formAction} className="flex items-center justify-end gap-2">
+                <input
+                  name="reason"
+                  placeholder="Reason for voiding"
+                  required
+                  className="rounded-lg border border-border-strong bg-surface px-2 py-1 text-sm text-ink focus:border-brown-700 focus:outline-none"
+                />
+                <button type="submit" disabled={pending} className="text-sm text-danger hover:underline">
+                  {pending ? "Voiding…" : "Confirm"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="text-sm text-muted hover:underline"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <button type="button" onClick={() => setShowForm(true)} className="text-sm text-danger hover:underline">
+                Void
               </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="text-sm text-zinc-500 hover:underline dark:text-zinc-400"
-              >
-                Cancel
-              </button>
-            </form>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              className="text-sm text-red-600 hover:underline"
-            >
-              Void
-            </button>
-          )}
-          {state.error && <p className="mt-1 text-sm text-red-600">{state.error}</p>}
-        </div>
+            ))}
+          {state.error && <p className="mt-1 text-sm text-danger">{state.error}</p>}
+        </Td>
       )}
-    </li>
+    </tr>
   );
 }

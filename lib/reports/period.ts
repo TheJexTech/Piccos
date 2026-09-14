@@ -1,6 +1,11 @@
-import { getBusinessTodayDateStr, getWeekRange } from "@/lib/dashboard/timezone";
+import { getBusinessTodayDateStr, getWeekRange, shiftDateStr, getLastMonthRange } from "@/lib/dashboard/timezone";
 
-export type ReportPeriod = "daily" | "weekly" | "monthly" | "custom";
+// "yesterday" and "last_month" are additional presets used by the Revenue
+// page (Today/Yesterday/This week/This month/Last month/Custom) — Reports
+// keeps its existing daily/weekly/monthly/custom filter UI unchanged, but
+// both share this one period-resolution function rather than duplicating
+// the date math.
+export type ReportPeriod = "daily" | "yesterday" | "weekly" | "monthly" | "last_month" | "custom";
 
 export type ResolvedPeriod = {
   period: ReportPeriod;
@@ -42,11 +47,37 @@ export function resolveReportPeriod(
 ): ResolvedPeriod {
   const todayStr = getBusinessTodayDateStr(timeZone);
   const period: ReportPeriod =
+    searchParams.period === "yesterday" ||
     searchParams.period === "weekly" ||
     searchParams.period === "monthly" ||
+    searchParams.period === "last_month" ||
     searchParams.period === "custom"
       ? searchParams.period
       : "daily";
+
+  if (period === "yesterday") {
+    const dateStr = shiftDateStr(todayStr, -1);
+    return {
+      period,
+      startDateStr: dateStr,
+      endDateStr: dateStr,
+      label: formatDate(dateStr),
+      dateInput: dateStr,
+      monthInput: todayStr.slice(0, 7),
+    };
+  }
+
+  if (period === "last_month") {
+    const { startDateStr, endDateStr } = getLastMonthRange(todayStr);
+    return {
+      period,
+      startDateStr,
+      endDateStr,
+      label: formatMonth(startDateStr.slice(0, 7)),
+      dateInput: todayStr,
+      monthInput: startDateStr.slice(0, 7),
+    };
+  }
 
   if (period === "weekly") {
     const dateInput = searchParams.date || todayStr;

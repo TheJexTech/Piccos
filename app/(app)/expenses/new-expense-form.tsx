@@ -4,6 +4,10 @@ import { useActionState, useState } from "react";
 import { createExpense } from "@/lib/expenses/actions";
 import { initialExpenseActionState, type ExpenseCategory } from "@/lib/expenses/types";
 import { FormField } from "@/components/form-field";
+import { SelectField } from "@/components/ui/select-field";
+import { Button } from "@/components/ui/button";
+import { SectionCard } from "@/components/ui/section-card";
+import type { Outlet } from "@/lib/business/outlets";
 
 function todayLocal(): string {
   const d = new Date();
@@ -14,9 +18,11 @@ function todayLocal(): string {
 export function NewExpenseForm({
   businessId,
   categories,
+  outlets,
 }: {
   businessId: string;
   categories: ExpenseCategory[];
+  outlets: Outlet[];
 }) {
   const createExpenseWithBusiness = createExpense.bind(null, businessId);
   const [state, formAction, pending] = useActionState(
@@ -26,47 +32,40 @@ export function NewExpenseForm({
   const [today] = useState(todayLocal);
 
   return (
-    <form
-      action={formAction}
-      className="flex flex-col gap-4 rounded border border-zinc-200 p-4 dark:border-zinc-800"
-    >
-      <h2 className="text-sm font-medium text-black dark:text-zinc-50">Record expense</h2>
-      <div className="grid grid-cols-2 gap-4">
-        <FormField label="Amount" name="amount" type="number" required />
-        <div className="flex flex-col gap-1">
-          <label htmlFor="category_id" className="text-sm text-zinc-600 dark:text-zinc-400">
-            Category
-          </label>
-          <select
-            id="category_id"
-            name="category_id"
-            defaultValue=""
-            className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          >
+    <SectionCard title="Record expense">
+      <form action={formAction} className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField label="Amount" name="amount" type="number" required />
+          <SelectField label="Category" id="category_id" name="category_id" defaultValue="">
             <option value="">None</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
             ))}
-          </select>
+          </SelectField>
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <FormField label="Description" name="description" />
-        <FormField label="Date" name="expense_date" type="date" defaultValue={today} />
-      </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField label="Description" name="description" />
+          <FormField label="Date" name="expense_date" type="date" defaultValue={today} />
+        </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+        <SelectField label="Outlet" id="station_id" name="station_id" defaultValue="" className="sm:w-64">
+          <option value="">Shop-wide (all outlets)</option>
+          {outlets.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.name}
+            </option>
+          ))}
+        </SelectField>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="self-start rounded bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
-      >
-        {pending ? "Recording…" : "Record expense"}
-      </button>
-    </form>
+        {state.error && <p className="text-sm text-danger">{state.error}</p>}
+
+        <Button type="submit" disabled={pending} className="self-start">
+          {pending ? "Recording…" : "Record expense"}
+        </Button>
+      </form>
+    </SectionCard>
   );
 }

@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireCurrentMembership } from "@/lib/business/current";
+import { getBusinessOutlets } from "@/lib/business/outlets";
 import { CategoriesSection } from "./categories-section";
 import { NewExpenseForm } from "./new-expense-form";
 import { ExpensesList } from "./expenses-list";
@@ -12,32 +14,24 @@ export default async function ExpensesPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
-    .from("business_members")
-    .select("business_id, role")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .limit(1)
-    .maybeSingle();
-  if (!membership) redirect("/onboarding/business");
+  const membership = await requireCurrentMembership(supabase, user.id);
 
   const canAccess = membership.role === "owner" || membership.role === "secretary";
   const isOwner = membership.role === "owner";
 
   if (!canAccess) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-12">
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Expenses</h1>
-        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-          Only the owner and secretary can view expenses.
-        </p>
+      <div>
+        <h1 className="text-2xl font-semibold text-ink">Expenses</h1>
+        <p className="mt-4 text-sm text-muted">Only the owner and secretary can view expenses.</p>
       </div>
     );
   }
 
-  const businessId = membership.business_id;
+  const businessId = membership.businessId;
 
-  const [{ data: categories }, { data: expenses }] = await Promise.all([
+  const [outlets, { data: categories }, { data: expenses }] = await Promise.all([
+    getBusinessOutlets(supabase, businessId),
     supabase
       .from("expense_categories")
       .select("id, name")
@@ -53,18 +47,14 @@ export default async function ExpensesPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Expenses</h1>
+    <div>
+      <h1 className="text-2xl font-semibold text-ink">Expenses</h1>
 
-      <div className="mt-6">
+      <div className="mt-6 flex flex-col gap-6">
         <CategoriesSection businessId={businessId} categories={categories ?? []} isOwner={isOwner} />
+        <NewExpenseForm businessId={businessId} categories={categories ?? []} outlets={outlets} />
+        <ExpensesList expenses={expenses ?? []} isOwner={isOwner} />
       </div>
-
-      <div className="mt-6">
-        <NewExpenseForm businessId={businessId} categories={categories ?? []} />
-      </div>
-
-      <ExpensesList expenses={expenses ?? []} isOwner={isOwner} />
     </div>
   );
 }

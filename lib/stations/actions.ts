@@ -11,7 +11,7 @@ export async function createStation(
 ): Promise<StationActionState> {
   const name = (formData.get("name") as string)?.trim();
   if (!name) {
-    return { error: "Station name is required." };
+    return { error: "Outlet name is required." };
   }
 
   const supabase = await createClient();
@@ -25,7 +25,7 @@ export async function createStation(
     return { error: error.message };
   }
 
-  revalidatePath("/shop/stations");
+  revalidatePath("/shop/outlets");
   return { error: null };
 }
 
@@ -33,11 +33,11 @@ export async function updateStationStatus(stationId: string, formData: FormData)
   const status = formData.get("status") as string;
   const supabase = await createClient();
   await supabase.from("stations").update({ status }).eq("id", stationId);
-  revalidatePath("/shop/stations");
+  revalidatePath("/shop/outlets");
 }
 
 export async function deleteStation(stationId: string) {
   const supabase = await createClient();
   await supabase.from("stations").delete().eq("id", stationId);
-  revalidatePath("/shop/stations");
+  revalidatePath("/shop/outlets");
 }

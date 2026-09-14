@@ -18,11 +18,25 @@ export async function createTransaction(
   const amountRaw = formData.get("amount") as string;
   const amount = Number(amountRaw);
 
+  // Tip is optional — service revenue and tips are separate financial
+  // concepts (spec: tips must never be included in service revenue or
+  // estimated operating profit), so an empty tip defaults to 0 rather than
+  // failing validation.
+  const tipAmountRaw = formData.get("tip_amount") as string;
+  const tipAmount = tipAmountRaw ? Number(tipAmountRaw) : 0;
+  const tipPaymentMethod = (formData.get("tip_payment_method") as string) || null;
+
   if (!serviceId) return { error: "Select a service." };
   if (!staffId) return { error: "Select a staff member." };
   if (!paymentMethod) return { error: "Select a payment method." };
   if (!amountRaw || Number.isNaN(amount) || amount < 0) {
     return { error: "Enter a valid amount." };
+  }
+  if (Number.isNaN(tipAmount) || tipAmount < 0) {
+    return { error: "Enter a valid tip amount." };
+  }
+  if (tipAmount > 0 && !tipPaymentMethod) {
+    return { error: "Select a payment method for the tip." };
   }
 
   const supabase = await createClient();
@@ -50,6 +64,8 @@ export async function createTransaction(
     service_price: service.price,
     amount,
     payment_method: paymentMethod,
+    tip_amount: tipAmount,
+    tip_payment_method: tipAmount > 0 ? tipPaymentMethod : null,
     ...(transactionDateRaw ? { transaction_date: new Date(transactionDateRaw).toISOString() } : {}),
   });
 
@@ -58,6 +74,8 @@ export async function createTransaction(
   }
 
   revalidatePath("/activity");
+  revalidatePath("/dashboard");
+  revalidatePath("/revenue");
   return { error: null };
 }
 
@@ -84,5 +102,6 @@ export async function voidTransaction(
   revalidatePath("/activity");
   revalidatePath("/dashboard");
   revalidatePath("/reports");
+  revalidatePath("/revenue");
   return { error: null };
 }

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { NewBusinessForm } from "./new-business-form";
+import { NewBusinessForm } from "@/components/new-business-form";
+import { LogoutButton } from "./logout-button";
 
 export default async function NewBusinessPage() {
   const supabase = await createClient();
@@ -23,7 +24,10 @@ export default async function NewBusinessPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
+    <div className="relative flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
+      <div className="absolute top-4 right-4">
+        <LogoutButton />
+      </div>
       <div className="w-full max-w-lg">
         <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
           Set up your business

@@ -9,3 +9,47 @@ export const TIMEZONES = [
   "Africa/Johannesburg",
   "UTC",
 ];
+
+export const NIGERIA_STATES = [
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+];
+
+// Structured as {value, label} rather than a bare string array so more
+// countries can be appended later without changing how the field renders —
+// Nigeria is the only option for V1's launch market.
+export const COUNTRIES = [{ value: "Nigeria", label: "Nigeria" }];

@@ -28,6 +28,15 @@ function getTimezoneOffsetMinutes(timeZone: string, date: Date): number {
   return (asUTC - date.getTime()) / 60000;
 }
 
+// Converts any UTC instant to its local calendar date string in the
+// business's timezone — the general-purpose version of the offset math
+// getBusinessTodayDateStr already does for "now", usable for bucketing
+// arbitrary historical rows (e.g. a revenue trend chart) by local day.
+export function utcToLocalDateStr(timeZone: string, date: Date): string {
+  // en-CA formats as YYYY-MM-DD, matching every other dateStr in this app.
+  return new Intl.DateTimeFormat("en-CA", { timeZone }).format(date);
+}
+
 export function getBusinessTodayDateStr(timeZone: string, now: Date = new Date()): string {
   const offsetMinutes = getTimezoneOffsetMinutes(timeZone, now);
   const localNow = new Date(now.getTime() + offsetMinutes * 60000);
@@ -76,6 +85,29 @@ export function getWeekRange(dateStr: string): { startDateStr: string; endDateSt
   const fmt = (dt: Date) =>
     `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
   return { startDateStr: fmt(monday), endDateStr: fmt(sunday) };
+}
+
+// dateStr shifted by deltaDays — pure calendar-date arithmetic, same style
+// as getWeekRange (no timezone offset involved, dateStr is already a local
+// calendar date).
+export function shiftDateStr(dateStr: string, deltaDays: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + deltaDays));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
+}
+
+// Calendar month immediately before the one containing dateStr.
+export function getLastMonthRange(dateStr: string): { startDateStr: string; endDateStr: string } {
+  const [y, m] = dateStr.split("-").map(Number);
+  const prevMonth = m === 1 ? 12 : m - 1;
+  const prevYear = m === 1 ? y - 1 : y;
+  const lastDay = new Date(Date.UTC(prevYear, prevMonth, 0)).getUTCDate();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    startDateStr: `${prevYear}-${pad(prevMonth)}-01`,
+    endDateStr: `${prevYear}-${pad(prevMonth)}-${pad(lastDay)}`,
+  };
 }
 
 export function getBusinessDateRanges(timeZone: string, now: Date = new Date()) {

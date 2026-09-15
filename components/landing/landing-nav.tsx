@@ -86,11 +86,18 @@ type MenuKey = "platform" | "solutions" | "resources" | null;
 export function LandingNav() {
   const [openMenu, setOpenMenu] = useState<MenuKey>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  // outerRef spans the logo + pill + dropdowns (click-outside boundary);
+  // navRef and logoRef each get the same scroll fade/blur/transform below,
+  // so the logo flows away together with the pill rather than staying
+  // pinned on screen by itself.
+  const outerRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+      if (outerRef.current && !outerRef.current.contains(event.target as Node)) {
         setOpenMenu(null);
       }
     }
@@ -99,11 +106,15 @@ export function LandingNav() {
   }, []);
 
   // Liquid scroll transition: as the dashboard showcase approaches the top
-  // of the viewport, the pill fades/blurs/flattens upward as if flowing
-  // away, then reverses smoothly on scroll-up. Driven entirely off a
-  // rAF-throttled scroll listener writing directly to the DOM (no React
-  // state), so scrolling never triggers a re-render — the showcase itself
-  // is never touched, only read via getBoundingClientRect.
+  // of the viewport, the pill AND the logo fade/blur/flatten upward
+  // together as if flowing away, then reverse smoothly on scroll-up.
+  // Driven entirely off a rAF-throttled scroll listener writing directly
+  // to the DOM (no React state) for the fade itself, so scrolling never
+  // triggers a re-render for it — the showcase itself is never touched,
+  // only read via getBoundingClientRect. The back-to-top button's
+  // visibility is the one piece of actual React state here, and it's
+  // guarded so it only re-renders on the rare frame that crosses the
+  // show/hide threshold, not on every scroll tick.
   useEffect(() => {
     const showcase = document.getElementById("dashboard-showcase");
     if (!showcase) return;
@@ -113,7 +124,8 @@ export function LandingNav() {
     function apply() {
       ticking = false;
       const pill = navRef.current;
-      if (!pill || !showcase) return;
+      const logo = logoRef.current;
+      if (!pill || !logo || !showcase) return;
 
       const rect = showcase.getBoundingClientRect();
       const vh = window.innerHeight;
@@ -128,13 +140,20 @@ export function LandingNav() {
       const end = vh * 0.12;
       const progress = Math.min(1, Math.max(0, (start - rect.top) / (start - end)));
 
-      pill.style.opacity = String(1 - progress);
-      pill.style.filter = progress > 0.01 ? `blur(${(progress * 6).toFixed(2)}px)` : "";
-      pill.style.transform =
-        progress > 0.01
-          ? `translateY(${(-progress * 34).toFixed(1)}px) scale(${(1 - progress * 0.05).toFixed(3)}, ${(1 - progress * 0.16).toFixed(3)})`
-          : "";
-      pill.style.pointerEvents = progress > 0.85 ? "none" : "auto";
+      for (const el of [pill, logo]) {
+        el.style.opacity = String(1 - progress);
+        el.style.filter = progress > 0.01 ? `blur(${(progress * 6).toFixed(2)}px)` : "";
+        el.style.transform =
+          progress > 0.01
+            ? `translateY(${(-progress * 34).toFixed(1)}px) scale(${(1 - progress * 0.05).toFixed(3)}, ${(1 - progress * 0.16).toFixed(3)})`
+            : "";
+        el.style.pointerEvents = progress > 0.85 ? "none" : "auto";
+      }
+
+      setShowBackToTop((prev) => {
+        const next = window.scrollY > vh * 0.6;
+        return prev === next ? prev : next;
+      });
     }
 
     function onScrollOrResize() {
@@ -153,6 +172,10 @@ export function LandingNav() {
     };
   }, []);
 
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function toggle(menu: MenuKey) {
     setOpenMenu((current) => (current === menu ? null : menu));
   }
@@ -160,107 +183,117 @@ export function LandingNav() {
   return (
     <>
       <header className="sticky top-4 z-50 px-4 sm:top-6 sm:px-6">
-        <div
-          ref={navRef}
-          className="relative mx-auto flex max-w-6xl items-center justify-between rounded-2xl border border-landing-border bg-landing-surface/70 px-5 py-3 shadow-lg shadow-black/40 ring-1 ring-white/5 backdrop-blur-xl transition-[opacity,filter,transform] duration-100 ease-out will-change-transform sm:px-7"
-        >
-        <Link href="/" className="text-xl font-semibold tracking-tight text-landing-ink">
-          Piccos
-        </Link>
-
-        <nav className="hidden items-center gap-1 lg:flex">
-          <button
-            type="button"
-            onClick={() => toggle("platform")}
-            className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium text-landing-ink-secondary hover:text-landing-ink"
-          >
-            Platform
-            <ChevronDownIcon className={`size-3.5 transition-transform ${openMenu === "platform" ? "rotate-180" : ""}`} />
-          </button>
-          <button
-            type="button"
-            onClick={() => toggle("solutions")}
-            className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium text-landing-ink-secondary hover:text-landing-ink"
-          >
-            Solutions
-            <ChevronDownIcon className={`size-3.5 transition-transform ${openMenu === "solutions" ? "rotate-180" : ""}`} />
-          </button>
-          <button
-            type="button"
-            onClick={() => toggle("resources")}
-            className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium text-landing-ink-secondary hover:text-landing-ink"
-          >
-            Resources
-            <ChevronDownIcon className={`size-3.5 transition-transform ${openMenu === "resources" ? "rotate-180" : ""}`} />
-          </button>
-          <span className="cursor-default rounded-full px-4 py-2 text-sm font-medium text-landing-ink-secondary">
-            Pricing
-          </span>
-        </nav>
-
-        <div className="hidden items-center gap-2 lg:flex">
-          <Link href="/login" className="rounded-full px-4 py-2 text-sm font-medium text-landing-ink-secondary hover:text-landing-ink">
-            Log in
-          </Link>
+        <div ref={outerRef} className="relative mx-auto flex max-w-6xl items-center justify-between gap-4">
+          {/* Standalone brand mark — deliberately outside the pill below so
+              it isn't visually merged into the nav-links pill, but still
+              picks up the same scroll-driven "liquid" fade/blur/transform
+              as the pill (applied to both refs in the effect below). */}
           <Link
-            href="/signup"
-            className="rounded-full bg-landing-ink px-5 py-2.5 text-sm font-medium text-landing-bg transition-colors hover:bg-landing-accent-strong"
+            ref={logoRef}
+            href="/"
+            className="shrink-0 text-xl font-semibold tracking-tight text-landing-ink transition-[opacity,filter,transform] duration-100 ease-out will-change-transform"
           >
-            Get Started
+            Piccos
           </Link>
-        </div>
 
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open menu"
-          className="rounded-lg p-1.5 text-landing-ink lg:hidden"
-        >
-          <MenuIcon className="size-6" />
-        </button>
+          <div
+            ref={navRef}
+            className="flex items-center gap-1 rounded-2xl border border-landing-border bg-landing-surface/70 px-5 py-3 shadow-lg shadow-black/40 ring-1 ring-white/5 backdrop-blur-xl transition-[opacity,filter,transform] duration-100 ease-out will-change-transform sm:px-7"
+          >
+            <nav className="hidden items-center gap-1 lg:flex">
+              <button
+                type="button"
+                onClick={() => toggle("platform")}
+                className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium text-landing-ink-secondary hover:text-landing-ink"
+              >
+                Platform
+                <ChevronDownIcon className={`size-3.5 transition-transform ${openMenu === "platform" ? "rotate-180" : ""}`} />
+              </button>
+              <button
+                type="button"
+                onClick={() => toggle("solutions")}
+                className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium text-landing-ink-secondary hover:text-landing-ink"
+              >
+                Solutions
+                <ChevronDownIcon className={`size-3.5 transition-transform ${openMenu === "solutions" ? "rotate-180" : ""}`} />
+              </button>
+              <button
+                type="button"
+                onClick={() => toggle("resources")}
+                className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-medium text-landing-ink-secondary hover:text-landing-ink"
+              >
+                Resources
+                <ChevronDownIcon className={`size-3.5 transition-transform ${openMenu === "resources" ? "rotate-180" : ""}`} />
+              </button>
+              <span className="cursor-default rounded-full px-4 py-2 text-sm font-medium text-landing-ink-secondary">
+                Pricing
+              </span>
+            </nav>
 
-        {/* Platform mega menu */}
-        {openMenu === "platform" && (
-          <div className="absolute left-1/2 top-full mt-3 hidden w-[min(90vw,56rem)] -translate-x-1/2 rounded-2xl border border-landing-border bg-landing-surface shadow-lg lg:block">
-            <div className="mx-auto grid grid-cols-3 gap-10 px-10 py-10">
-              <PlatformColumn heading="Run Your Salon" items={RUN_YOUR_SHOP} />
-              <PlatformColumn heading="Understand Your Business" items={UNDERSTAND_YOUR_BUSINESS} />
-              <PlatformColumn heading="Work Smarter" items={WORK_SMARTER} />
+            <div className="hidden items-center gap-2 lg:flex">
+              <Link href="/login" className="rounded-full px-4 py-2 text-sm font-medium text-landing-ink-secondary hover:text-landing-ink">
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-full bg-landing-ink px-5 py-2.5 text-sm font-medium text-landing-bg transition-colors hover:bg-landing-accent-strong"
+              >
+                Get Started
+              </Link>
             </div>
-          </div>
-        )}
 
-        {/* Solutions dropdown */}
-        {openMenu === "solutions" && (
-          <div className="absolute left-1/2 top-full mt-3 hidden w-[26rem] -translate-x-1/2 rounded-2xl border border-landing-border bg-landing-surface p-4 shadow-lg lg:block">
-            <ul className="flex flex-col gap-1">
-              {SOLUTIONS.map((s) => (
-                <li key={s.label}>
-                  <a href="#platform" className="block rounded-xl p-3 hover:bg-landing-bg-alt">
-                    <span className="block text-sm font-medium text-landing-ink">{s.label}</span>
-                    <span className="block text-xs text-landing-muted">{s.description}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open menu"
+              className="rounded-lg p-1.5 text-landing-ink lg:hidden"
+            >
+              <MenuIcon className="size-6" />
+            </button>
           </div>
-        )}
 
-        {/* Resources dropdown */}
-        {openMenu === "resources" && (
-          <div className="absolute left-1/2 top-full mt-3 hidden w-64 -translate-x-1/2 rounded-2xl border border-landing-border bg-landing-surface p-2 shadow-lg lg:block">
-            <ul className="flex flex-col">
-              {RESOURCES.map((r) => (
-                <li key={r}>
-                  <span className="flex cursor-default items-center justify-between rounded-xl px-3 py-2.5 text-sm text-landing-ink-secondary">
-                    {r}
-                    <span className="text-[10px] uppercase tracking-wide text-landing-muted">Soon</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+          {/* Platform mega menu */}
+          {openMenu === "platform" && (
+            <div className="absolute left-1/2 top-full mt-3 hidden w-[min(90vw,56rem)] -translate-x-1/2 rounded-2xl border border-landing-border bg-landing-surface shadow-lg lg:block">
+              <div className="mx-auto grid grid-cols-3 gap-10 px-10 py-10">
+                <PlatformColumn heading="Run Your Salon" items={RUN_YOUR_SHOP} />
+                <PlatformColumn heading="Understand Your Business" items={UNDERSTAND_YOUR_BUSINESS} />
+                <PlatformColumn heading="Work Smarter" items={WORK_SMARTER} />
+              </div>
+            </div>
+          )}
+
+          {/* Solutions dropdown */}
+          {openMenu === "solutions" && (
+            <div className="absolute left-1/2 top-full mt-3 hidden w-[26rem] -translate-x-1/2 rounded-2xl border border-landing-border bg-landing-surface p-4 shadow-lg lg:block">
+              <ul className="flex flex-col gap-1">
+                {SOLUTIONS.map((s) => (
+                  <li key={s.label}>
+                    <a href="#platform" className="block rounded-xl p-3 hover:bg-landing-bg-alt">
+                      <span className="block text-sm font-medium text-landing-ink">{s.label}</span>
+                      <span className="block text-xs text-landing-muted">{s.description}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Resources dropdown */}
+          {openMenu === "resources" && (
+            <div className="absolute left-1/2 top-full mt-3 hidden w-64 -translate-x-1/2 rounded-2xl border border-landing-border bg-landing-surface p-2 shadow-lg lg:block">
+              <ul className="flex flex-col">
+                {RESOURCES.map((r) => (
+                  <li key={r}>
+                    <span className="flex cursor-default items-center justify-between rounded-xl px-3 py-2.5 text-sm text-landing-ink-secondary">
+                      {r}
+                      <span className="text-[10px] uppercase tracking-wide text-landing-muted">Soon</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </header>
 
@@ -357,6 +390,22 @@ export function LandingNav() {
           </div>
         </div>
       )}
+
+      {/* Back-to-top — always mounted so its own opacity/translate
+          transition can run smoothly; pointer-events follows visibility so
+          it's never an invisible click target while hidden. */}
+      <button
+        type="button"
+        onClick={scrollToTop}
+        aria-label="Back to top"
+        aria-hidden={!showBackToTop}
+        tabIndex={showBackToTop ? 0 : -1}
+        className={`fixed bottom-6 right-6 z-40 flex size-11 items-center justify-center rounded-full border border-landing-border bg-landing-surface/80 text-landing-ink shadow-lg shadow-black/40 ring-1 ring-white/5 backdrop-blur-xl transition-[opacity,transform] duration-200 ease-out hover:text-landing-accent sm:bottom-8 sm:right-8 ${
+          showBackToTop ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"
+        }`}
+      >
+        <ChevronDownIcon className="size-5 rotate-180" />
+      </button>
     </>
   );
 }

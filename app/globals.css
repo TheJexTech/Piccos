@@ -32,6 +32,38 @@
   --color-danger-bg: #fbeae7;
   --color-warning: #8a6a1e;
   --color-warning-bg: #f8f0dc;
+
+  /* Public landing page only — a separate token set (not a --color-ink
+     override) so the authenticated app above is never at risk of picking
+     these up. The landing page reads only these; the app reads only the
+     tokens above; nothing shares a name. */
+  --color-landing-bg: #0c0a08;
+  --color-landing-bg-alt: #141210;
+  --color-landing-surface: #1a1613;
+  --color-landing-border: #2c2620;
+  --color-landing-border-strong: #3d352b;
+
+  --color-landing-ink: #f8f4ef;
+  --color-landing-ink-secondary: #d7cbbe;
+  --color-landing-muted: #a2988c;
+
+  --color-landing-accent: #c9a06e;
+  --color-landing-accent-strong: #e0bb8a;
+}
+
+/* Scoped to the landing page's dashboard showcase mockup only (see
+   components/landing/dashboard-showcase.tsx) — the showcase intentionally
+   reuses the real app's light-theme classes (bg-surface, bg-app-bg,
+   border-border) so it still looks like the actual product, but stark
+   white read as too cold/bright against the new black landing page. These
+   overrides only apply inside .showcase-warm's own subtree, so the
+   authenticated app (which reads the same token names from :root above)
+   is never affected. */
+.showcase-warm {
+  --color-app-bg: #f6efe3;
+  --color-surface: #fbf6ec;
+  --color-border: #e6dac5;
+  --color-border-strong: #d8c4a8;
 }
 
 @theme inline {
@@ -60,6 +92,17 @@
   --color-danger-bg: var(--color-danger-bg);
   --color-warning: var(--color-warning);
   --color-warning-bg: var(--color-warning-bg);
+
+  --color-landing-bg: var(--color-landing-bg);
+  --color-landing-bg-alt: var(--color-landing-bg-alt);
+  --color-landing-surface: var(--color-landing-surface);
+  --color-landing-border: var(--color-landing-border);
+  --color-landing-border-strong: var(--color-landing-border-strong);
+  --color-landing-ink: var(--color-landing-ink);
+  --color-landing-ink-secondary: var(--color-landing-ink-secondary);
+  --color-landing-muted: var(--color-landing-muted);
+  --color-landing-accent: var(--color-landing-accent);
+  --color-landing-accent-strong: var(--color-landing-accent-strong);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

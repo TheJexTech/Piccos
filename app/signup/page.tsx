@@ -9,15 +9,40 @@ export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signUp, initialAuthActionState);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-black">
-      <div className="w-full max-w-sm">
-        <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
-          Create your Piccos account
-        </h1>
+    <div className="relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-landing-bg px-4">
+      {/* Salon atmosphere photo — same background-layer treatment as the
+          login page (app/login/page.tsx) and landing hero
+          (components/landing/hero.tsx): CSS background-image on
+          absolutely-positioned divs, never part of document flow, never
+          above the content. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-30 hidden bg-[url('/images/login.png')] bg-cover bg-[position:62%_center] sm:block"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-30 block bg-[url('/images/login.png')] bg-cover bg-[position:60%_center] sm:hidden"
+      />
+
+      {/* Dark overlay — darkest through the center where the card sits,
+          easing off toward the edges on desktop/tablet so the salon
+          imagery still reads there. Mobile stays heavily darkened
+          edge-to-edge since the card spans nearly the full width. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-20 hidden bg-[radial-gradient(ellipse_75%_85%_at_center,rgba(6,4,3,0.95)_0%,rgba(6,4,3,0.9)_35%,rgba(7,5,4,0.75)_58%,rgba(8,6,5,0.4)_80%,rgba(8,6,5,0.14)_100%)] sm:block"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-20 block bg-[linear-gradient(180deg,rgba(6,4,3,0.94)_0%,rgba(6,4,3,0.97)_55%,rgba(6,4,3,0.985)_100%)] sm:hidden"
+      />
+
+      <div className="w-full max-w-sm rounded-2xl border border-landing-border bg-landing-surface/90 p-8 shadow-2xl backdrop-blur-sm">
+        <h1 className="text-xl font-semibold text-landing-ink">Create your Piccos account</h1>
 
         <form action={formAction} className="mt-6 flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label htmlFor="email" className="text-sm text-zinc-600 dark:text-zinc-400">
+            <label htmlFor="email" className="text-sm text-landing-ink-secondary">
               Email
             </label>
             <input
@@ -26,12 +51,12 @@ export default function SignupPage() {
               type="email"
               required
               autoComplete="email"
-              className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              className="rounded-lg border border-landing-border-strong bg-landing-bg-alt px-3 py-2 text-sm text-landing-ink placeholder:text-landing-muted focus:border-landing-accent focus:outline-none"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="password" className="text-sm text-zinc-600 dark:text-zinc-400">
+            <label htmlFor="password" className="text-sm text-landing-ink-secondary">
               Password
             </label>
             <input
@@ -41,12 +66,12 @@ export default function SignupPage() {
               required
               minLength={6}
               autoComplete="new-password"
-              className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              className="rounded-lg border border-landing-border-strong bg-landing-bg-alt px-3 py-2 text-sm text-landing-ink placeholder:text-landing-muted focus:border-landing-accent focus:outline-none"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="confirmPassword" className="text-sm text-zinc-600 dark:text-zinc-400">
+            <label htmlFor="confirmPassword" className="text-sm text-landing-ink-secondary">
               Confirm password
             </label>
             <input
@@ -56,23 +81,23 @@ export default function SignupPage() {
               required
               minLength={6}
               autoComplete="new-password"
-              className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              className="rounded-lg border border-landing-border-strong bg-landing-bg-alt px-3 py-2 text-sm text-landing-ink placeholder:text-landing-muted focus:border-landing-accent focus:outline-none"
             />
           </div>
 
-          {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+          {state.error && <p className="text-sm text-red-400">{state.error}</p>}
 
           <button
             type="submit"
             disabled={pending}
-            className="rounded bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+            className="rounded-full bg-landing-ink px-3 py-2 text-sm font-medium text-landing-bg transition-colors hover:bg-landing-accent-strong disabled:opacity-50"
           >
             {pending ? "Creating account…" : "Create account"}
           </button>
         </form>
 
         <div className="mt-4 text-sm">
-          <Link href="/login" className="text-zinc-500 hover:underline dark:text-zinc-400">
+          <Link href="/login" className="text-landing-ink-secondary hover:text-landing-accent">
             Already have an account? Log in
           </Link>
         </div>

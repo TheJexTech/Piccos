@@ -1,6 +1,7 @@
 import { Container, PrimaryCta, SecondaryCta } from "./landing-shell";
 import { DashboardShowcase } from "./dashboard-showcase";
 import { Reveal } from "./reveal";
+import { IntelligenceScramble } from "./intelligence-scramble";
 
 function ArrowIcon({ className = "" }: { className?: string }) {
   return (
@@ -79,7 +80,7 @@ export function Hero() {
           <h1 className="text-5xl font-semibold tracking-tight text-landing-ink sm:text-6xl lg:text-7xl">
             Run your Salon with
             <br />
-            <span className="text-landing-accent">Intelligence.</span>
+            <IntelligenceScramble />
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg text-landing-ink-secondary sm:text-xl">
             Piccos gives you one simple place to manage your salon, understand your numbers and

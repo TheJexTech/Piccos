@@ -26,11 +26,11 @@ type NavItem = { href: string; label: string; icon: ComponentType<{ className?: 
 
 const OPERATIONS_ITEMS: NavItem[] = [
   { href: "/shop/outlets", label: "Outlets", icon: OutletsIcon },
-  { href: "/activity", label: "Activity", icon: ActivityIcon },
+  { href: "/activity", label: "Record Activity", icon: ActivityIcon },
   { href: "/shop/staff", label: "Staff", icon: StaffIcon },
   { href: "/shop/services", label: "Services", icon: ServicesIcon },
   { href: "/products", label: "Products", icon: ProductsIcon },
-  { href: "/supplies", label: "Supplies", icon: SuppliesIcon },
+  { href: "/supplies", label: "Inventory", icon: SuppliesIcon },
 ];
 
 const FINANCE_ITEMS: NavItem[] = [

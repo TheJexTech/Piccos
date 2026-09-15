@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentMembership } from "@/lib/business/current";
+import { getAuthUser, requireCurrentMembership } from "@/lib/business/current";
 import type { AuditLogEntry } from "@/lib/audit/types";
 
 function summarizeOldValues(entry: AuditLogEntry): string | null {
@@ -17,9 +17,7 @@ function summarizeOldValues(entry: AuditLogEntry): string | null {
 
 export default async function AuditLogPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) redirect("/login");
 
   const membership = await requireCurrentMembership(supabase, user.id);

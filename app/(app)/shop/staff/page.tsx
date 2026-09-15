@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentMembership } from "@/lib/business/current";
+import { getAuthUser, requireCurrentMembership } from "@/lib/business/current";
 import { ShopSubNav } from "@/components/shop-sub-nav";
 import { NextStepHint } from "@/components/next-step-hint";
 import { SectionCard } from "@/components/ui/section-card";
@@ -9,41 +9,40 @@ import { NewStaffForm } from "./new-staff-form";
 
 export default async function StaffPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) redirect("/login");
 
   const membership = await requireCurrentMembership(supabase, user.id);
   const canManage = membership.role === "owner" || membership.role === "secretary";
   const isOwner = membership.role === "owner";
 
-  const { data: stations } = await supabase
-    .from("stations")
-    .select("id, name")
-    .eq("business_id", membership.businessId)
-    .order("name", { ascending: true });
-
-  const { data: staff } = await supabase
-    .from("staff")
-    .select("id, display_name, station_id, status, joined_at")
-    .eq("business_id", membership.businessId)
-    .order("joined_at", { ascending: true });
-
   // Matches Activity's own "active" filter, so this hint never contradicts
-  // whether Activity would actually let you record a transaction.
-  const [{ count: stationsCount }, { count: servicesCount }] = await Promise.all([
-    supabase
-      .from("stations")
-      .select("id", { count: "exact", head: true })
-      .eq("business_id", membership.businessId)
-      .eq("status", "active"),
-    supabase
-      .from("services")
-      .select("id", { count: "exact", head: true })
-      .eq("business_id", membership.businessId)
-      .eq("status", "active"),
-  ]);
+  // whether Activity would actually let you record a transaction. All four
+  // queries are independent (none depends on another's result), so they run
+  // as one round trip instead of two sequential ones.
+  const [{ data: stations }, { data: staff }, { count: stationsCount }, { count: servicesCount }] =
+    await Promise.all([
+      supabase
+        .from("stations")
+        .select("id, name")
+        .eq("business_id", membership.businessId)
+        .order("name", { ascending: true }),
+      supabase
+        .from("staff")
+        .select("id, display_name, station_id, status, joined_at")
+        .eq("business_id", membership.businessId)
+        .order("joined_at", { ascending: true }),
+      supabase
+        .from("stations")
+        .select("id", { count: "exact", head: true })
+        .eq("business_id", membership.businessId)
+        .eq("status", "active"),
+      supabase
+        .from("services")
+        .select("id", { count: "exact", head: true })
+        .eq("business_id", membership.businessId)
+        .eq("status", "active"),
+    ]);
 
   return (
     <div>

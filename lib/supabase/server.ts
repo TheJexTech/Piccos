@@ -1,7 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
-export async function createClient() {
+// cache() collapses every createClient() call within one request into the
+// same client instance — the layout and every page used to each create
+// their own, which meant lib/business/current.ts's cache()-wrapped helpers
+// below never actually deduped (different client object = different cache
+// key). One shared instance per request, never across requests.
+export const createClient = cache(async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -26,4 +32,4 @@ export async function createClient() {
       },
     },
   );
-}
+});

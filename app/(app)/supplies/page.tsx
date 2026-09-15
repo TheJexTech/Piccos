@@ -1,16 +1,14 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentMembership } from "@/lib/business/current";
+import { getAuthUser, requireCurrentMembership } from "@/lib/business/current";
 import { buttonClasses } from "@/components/ui/button";
 import { SuppliesList } from "./supplies-list";
 import type { Material } from "@/lib/materials/types";
 
 export default async function SuppliesPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) redirect("/login");
 
   const membership = await requireCurrentMembership(supabase, user.id);

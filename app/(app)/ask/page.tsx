@@ -1,13 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentMembership } from "@/lib/business/current";
+import { getAuthUser, requireCurrentMembership } from "@/lib/business/current";
 import { AskForm } from "./ask-form";
 
 export default async function AskPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) redirect("/login");
 
   await requireCurrentMembership(supabase, user.id);

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/business/current";
 import { switchBusiness } from "@/lib/business/actions";
 
 type ShopMembership = {
@@ -10,9 +11,7 @@ type ShopMembership = {
 
 export default async function MyShopsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) redirect("/login");
 
   const { data: memberships } = await supabase

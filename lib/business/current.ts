@@ -7,6 +7,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import type { createClient } from "@/lib/supabase/server";
 
 export const CURRENT_BUSINESS_COOKIE = "current_business_id";
@@ -15,7 +16,19 @@ type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 export type CurrentMembership = { businessId: string; role: string };
 
-export async function getCurrentMembership(
+// The layout and every page independently call getUser() — cache() collapses
+// those into one auth round trip per request. Relies on createClient() also
+// being cache()-wrapped (lib/supabase/server.ts) so `supabase` is the same
+// object reference across call sites, which is what cache()'s argument
+// matching needs to actually hit.
+export const getAuthUser = cache(async (supabase: SupabaseClient) => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+});
+
+export const getCurrentMembership = cache(async function getCurrentMembership(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<CurrentMembership | null> {
@@ -46,7 +59,7 @@ export async function getCurrentMembership(
     .maybeSingle();
 
   return fallback ? { businessId: fallback.business_id, role: fallback.role } : null;
-}
+});
 
 // For every page that requires an outlet to render at all (everything
 // except the onboarding and outlet-list pages themselves).

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentMembership } from "@/lib/business/current";
+import { getAuthUser, requireCurrentMembership } from "@/lib/business/current";
 import { getBusinessOutlets, resolveOutletId } from "@/lib/business/outlets";
 import { resolveReportPeriod, type ResolvedPeriod } from "@/lib/reports/period";
 import { localDateRangeToUTC, shiftDateStr } from "@/lib/dashboard/timezone";
@@ -36,9 +36,7 @@ export default async function RevenuePage({
 }) {
   const params = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) redirect("/login");
 
   // No role gate — RLS already scopes a barber's query to just their own
@@ -50,17 +48,16 @@ export default async function RevenuePage({
 
   // Same outlet source as everywhere else (Dashboard/Staff/Products) — this
   // business's stations. No explicit ?outlet= means "All Outlets" combined.
-  const outlets = await getBusinessOutlets(supabase, businessId);
+  // Neither this nor the business row depends on the other's result, so
+  // they run as one round trip instead of two sequential ones.
+  const [outlets, { data: business }] = await Promise.all([
+    getBusinessOutlets(supabase, businessId),
+    supabase.from("businesses").select("timezone, currency").eq("id", businessId).single(),
+  ]);
   const selectedOutlet = resolveOutletId(params.outlet, outlets);
   const stationId = selectedOutlet === "all" ? undefined : selectedOutlet;
   const viewingOutletName =
     selectedOutlet === "all" ? "All Outlets" : outlets.find((o) => o.id === selectedOutlet)?.name ?? null;
-
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("timezone, currency")
-    .eq("id", businessId)
-    .single();
 
   const timezone = business?.timezone ?? "Africa/Lagos";
   const currency = business?.currency ?? "NGN";

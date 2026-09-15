@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentMembership } from "@/lib/business/current";
+import { getAuthUser, requireCurrentMembership } from "@/lib/business/current";
 import { LAST_STAFF_COOKIE } from "@/lib/activity/constants";
 import { SectionCard } from "@/components/ui/section-card";
 import { RecordingTabs } from "./recording-tabs";
@@ -15,9 +15,7 @@ type StaffRow = { id: string; display_name: string; station_id: string | null; s
 
 export default async function ActivityPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) redirect("/login");
 
   const membership = await requireCurrentMembership(supabase, user.id);

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentMembership } from "@/lib/business/current";
+import { getAuthUser, requireCurrentMembership } from "@/lib/business/current";
 import { getBusinessOutlets } from "@/lib/business/outlets";
 import { CategoriesSection } from "./categories-section";
 import { NewExpenseForm } from "./new-expense-form";
@@ -9,9 +9,7 @@ import type { Expense } from "@/lib/expenses/types";
 
 export default async function ExpensesPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) redirect("/login");
 
   const membership = await requireCurrentMembership(supabase, user.id);

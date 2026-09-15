@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentMembership } from "@/lib/business/current";
+import { getAuthUser, requireCurrentMembership } from "@/lib/business/current";
 import { ShopForm } from "./shop-form";
 import { ShopSubNav } from "@/components/shop-sub-nav";
 import { SetupChecklist } from "@/components/setup-checklist";
@@ -9,9 +9,7 @@ import type { Business } from "@/lib/business/types";
 
 export default async function ShopDetailsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) redirect("/login");
 
   const membership = await requireCurrentMembership(supabase, user.id);

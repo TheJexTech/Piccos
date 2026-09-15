@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import type { ResolvedPeriod } from "@/lib/reports/period";
 import type { Outlet } from "@/lib/business/outlets";
 import { FilterBar } from "@/components/ui/filter-bar";
@@ -26,9 +27,27 @@ export function RevenuePeriodFilter({
   selectedOutlet: string;
 }) {
   const [period, setPeriod] = useState(resolved.period);
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
+
+  // Same URL/query-param contract a native GET submit would produce — this
+  // just avoids the full browser reload a plain <form method="get"> causes,
+  // keeping the current page visible while the new data loads.
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const params = new URLSearchParams();
+    for (const [key, value] of formData.entries()) {
+      if (typeof value === "string" && value) params.set(key, value);
+    }
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`);
+    });
+  }
 
   return (
-    <FilterBar>
+    <FilterBar onSubmit={handleSubmit}>
       <SelectField label="Outlet" id="outlet" name="outlet" defaultValue={selectedOutlet}>
         <option value="all">All Outlets</option>
         {outlets.map((o) => (
@@ -81,8 +100,8 @@ export function RevenuePeriodFilter({
         </>
       )}
 
-      <button type="submit" className={buttonClasses("primary")}>
-        Apply
+      <button type="submit" className={buttonClasses("primary")} disabled={isPending}>
+        {isPending ? "Applying…" : "Apply"}
       </button>
     </FilterBar>
   );

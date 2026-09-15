@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentMembership } from "@/lib/business/current";
+import { getAuthUser, requireCurrentMembership } from "@/lib/business/current";
 import { getBusinessOutlets, resolveOutletId } from "@/lib/business/outlets";
 import { resolveReportPeriod, type ResolvedPeriod } from "@/lib/reports/period";
 import { localDateRangeToUTC } from "@/lib/dashboard/timezone";
@@ -33,20 +33,22 @@ export default async function DashboardPage({
 }) {
   const params = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) redirect("/login");
 
   const membership = await requireCurrentMembership(supabase, user.id);
   const businessId = membership.businessId;
   const canSeeFullDashboard = membership.role === "owner" || membership.role === "secretary";
 
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("timezone, currency")
-    .eq("id", businessId)
-    .single();
+  // Neither of these depends on the other's result (both only need
+  // businessId), so they run as one round trip instead of two sequential
+  // ones — same pattern as the earlier Staff/Outlets/Services fix. Barbers
+  // never use the outlets list (no selector on their view), so skip that
+  // query entirely for them rather than fetching it unused.
+  const [{ data: business }, outlets] = await Promise.all([
+    supabase.from("businesses").select("timezone, currency").eq("id", businessId).single(),
+    canSeeFullDashboard ? getBusinessOutlets(supabase, businessId) : Promise.resolve([]),
+  ]);
 
   const timezone = business?.timezone ?? "Africa/Lagos";
   const currency = business?.currency ?? "NGN";
@@ -78,9 +80,9 @@ export default async function DashboardPage({
     );
   }
 
-  // Outlets = this business's stations (see lib/business/outlets.ts).
-  // Defaults to "All Outlets" combined when nothing is selected yet.
-  const outlets = await getBusinessOutlets(supabase, businessId);
+  // Outlets = this business's stations (see lib/business/outlets.ts),
+  // already fetched above alongside the business row. Defaults to "All
+  // Outlets" combined when nothing is selected yet.
   const selectedOutlet = resolveOutletId(params.outlet, outlets);
   const outletQuery = `?outlet=${selectedOutlet}`;
   const stationId = selectedOutlet === "all" ? undefined : selectedOutlet;

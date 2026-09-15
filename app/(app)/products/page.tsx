@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentMembership } from "@/lib/business/current";
+import { getAuthUser, requireCurrentMembership } from "@/lib/business/current";
 import { getBusinessOutlets } from "@/lib/business/outlets";
 import { NewProductForm } from "./new-product-form";
 import { ProductsList } from "./products-list";
@@ -10,9 +10,7 @@ import type { Product, ProductSale } from "@/lib/products/types";
 
 export default async function ProductsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) redirect("/login");
 
   const membership = await requireCurrentMembership(supabase, user.id);

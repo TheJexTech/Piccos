@@ -27,10 +27,41 @@ function PlayIcon({ className = "" }: { className?: string }) {
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden pb-20 pt-16 sm:pb-28 sm:pt-24">
-      {/* Soft warm atmosphere on the black background — restrained on
-          purpose: one wide wash behind the headline plus two faint offset
-          blooms, never a loud gradient. */}
+    <section className="relative isolate overflow-hidden pb-20 pt-16 sm:pb-28 sm:pt-24">
+      {/* Salon atmosphere photo — a background layer only (CSS
+          background-image on an absolutely-positioned div), never part of
+          document flow, never above the content. Desktop/tablet keep the
+          barber (left) and stylist (right) visible toward the edges with
+          the center left for the headline; mobile has no meaningful
+          "edges" to show at that width, so it gets a plain centered crop
+          under a much stronger overlay instead of a squeezed desktop
+          image. Drop the actual photo at public/images/hero-salon.jpg. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-30 hidden bg-[url('/images/hero-salon.png')] bg-cover bg-center sm:block lg:bg-[position:center_38%]"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-30 block bg-[url('/images/hero-salon.png')] bg-cover bg-center sm:hidden"
+      />
+
+      {/* Dark overlay — the thing actually guaranteeing the copy stays
+          readable, not the positioning above. Strongest through the
+          center where the text sits, easing off toward the edges on
+          desktop/tablet so the salon imagery still reads there. Mobile
+          has no photo-safe edges to ease off into, so it stays heavily
+          darkened edge-to-edge. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-20 hidden bg-[radial-gradient(ellipse_85%_90%_at_center,rgba(6,4,3,0.97)_0%,rgba(6,4,3,0.95)_38%,rgba(7,5,4,0.82)_58%,rgba(8,6,5,0.42)_80%,rgba(8,6,5,0.14)_100%)] sm:block"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-20 block bg-[linear-gradient(180deg,rgba(6,4,3,0.94)_0%,rgba(6,4,3,0.97)_55%,rgba(6,4,3,0.985)_100%)] sm:hidden"
+      />
+
+      {/* Soft warm atmosphere — unchanged, layered above the photo/overlay
+          so the existing accent glow still reads on top of it. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[36rem] bg-[radial-gradient(ellipse_at_top,var(--color-landing-accent)_0%,transparent_60%)] opacity-[0.14]"

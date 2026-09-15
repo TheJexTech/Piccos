@@ -13,7 +13,13 @@ import { OutletsIcon } from "@/components/ui/icons";
 // on screen (instead of it going blank) while the new outlet's data loads —
 // isPending only drives a small inline indicator here, nothing about what
 // gets fetched or rendered changes.
-export function OutletSelector({ outlets, selected }: { outlets: Outlet[]; selected: string }) {
+export function OutletSelector({
+  outlets,
+  selected,
+}: {
+  outlets: Outlet[];
+  selected: string;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 

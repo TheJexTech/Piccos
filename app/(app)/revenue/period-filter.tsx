@@ -7,6 +7,7 @@ import type { Outlet } from "@/lib/business/outlets";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { SelectField, selectClasses } from "@/components/ui/select-field";
 import { buttonClasses } from "@/components/ui/button";
+import { OutletsIcon } from "@/components/ui/icons";
 
 const PRESETS = [
   { value: "daily", label: "Today" },
@@ -48,14 +49,25 @@ export function RevenuePeriodFilter({
 
   return (
     <FilterBar onSubmit={handleSubmit}>
-      <SelectField label="Outlet" id="outlet" name="outlet" defaultValue={selectedOutlet}>
-        <option value="all">All Outlets</option>
-        {outlets.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.name}
-          </option>
-        ))}
-      </SelectField>
+      {outlets.length === 1 ? (
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-ink-secondary">Outlet</span>
+          <div className="flex items-center gap-1.5 rounded-xl border border-border-strong bg-surface px-3 py-2 text-sm text-ink">
+            <OutletsIcon className="size-4 shrink-0 text-muted" />
+            <span className="truncate">{outlets[0].name}</span>
+          </div>
+          <input type="hidden" name="outlet" value={outlets[0].id} />
+        </div>
+      ) : (
+        <SelectField label="Outlet" id="outlet" name="outlet" defaultValue={selectedOutlet}>
+          <option value="all">All Outlets</option>
+          {outlets.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.name}
+            </option>
+          ))}
+        </SelectField>
+      )}
 
       <SelectField
         label="Period"

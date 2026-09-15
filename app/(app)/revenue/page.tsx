@@ -54,7 +54,10 @@ export default async function RevenuePage({
     getBusinessOutlets(supabase, businessId),
     supabase.from("businesses").select("timezone, currency").eq("id", businessId).single(),
   ]);
-  const selectedOutlet = resolveOutletId(params.outlet, outlets);
+  // A single outlet is the only meaningful selection there is — no "all"
+  // state distinct from it, same treatment as the Dashboard outlet selector.
+  const singleOutlet = outlets.length === 1;
+  const selectedOutlet = singleOutlet ? outlets[0].id : resolveOutletId(params.outlet, outlets);
   const stationId = selectedOutlet === "all" ? undefined : selectedOutlet;
   const viewingOutletName =
     selectedOutlet === "all" ? "All Outlets" : outlets.find((o) => o.id === selectedOutlet)?.name ?? null;

@@ -85,7 +85,8 @@ export default async function DashboardPage({
   // Outlets" combined when nothing is selected yet — unless the user only
   // has exactly one outlet available, in which case that's the only
   // meaningful selection and there's no "all" state distinct from it.
-  const selectedOutlet = outlets.length === 1 ? outlets[0].id : resolveOutletId(params.outlet, outlets);
+  const singleOutlet = outlets.length === 1;
+  const selectedOutlet = singleOutlet ? outlets[0].id : resolveOutletId(params.outlet, outlets);
   const outletQuery = `?outlet=${selectedOutlet}`;
   const stationId = selectedOutlet === "all" ? undefined : selectedOutlet;
 

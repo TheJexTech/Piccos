@@ -59,6 +59,26 @@ export function BatchEntryForm({
 
   const paymentsReconciled = payments.length === 0 || Math.abs(paymentRemaining) < 0.005;
   const tipPaymentsReconciled = tipPayments.length === 0 || Math.abs(tipRemaining) < 0.005;
+  // The tip itself stays optional, but once an amount is entered, how it was
+  // paid is no longer optional — mirrors the service payment breakdown's
+  // reconciliation rule, just without the "zero rows is fine" escape hatch.
+  const tipPaymentMethodRequired = tipTotal > 0;
+  const tipHasPaymentMethod = tipPayments.length > 0 && tipPayments.every((p) => p.paymentMethod);
+
+  // Once a tip amount is entered, surface a payment-method field for it
+  // right away instead of waiting on a manual "+ Add payment" click — the
+  // single row's amount stays synced to the tip total unless the user adds
+  // a second row to split it themselves, at which point they own the math.
+  function handleTipAmountChange(value: string) {
+    setTipAmount(value);
+    const total = Number(value) || 0;
+    setTipPayments((prev) => {
+      if (total <= 0) return prev.length > 0 ? [] : prev;
+      if (prev.length === 0) return [{ key: newKey(), paymentMethod: "", amount: value }];
+      if (prev.length === 1) return [{ ...prev[0], amount: value }];
+      return prev;
+    });
+  }
 
   function updateLine(key: string, patch: Partial<ServiceLine>) {
     setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -79,6 +99,9 @@ export function BatchEntryForm({
     const validLines = lines.filter((l) => l.serviceId && Number(l.quantity) > 0);
     if (validLines.length === 0) return setError("Add at least one service with a quantity.");
     if (!paymentsReconciled) return setError("Payment breakdown must add up to the total service revenue.");
+    if (tipPaymentMethodRequired && !tipHasPaymentMethod) {
+      return setError("Please select a payment method for the tip.");
+    }
     if (!tipPaymentsReconciled) return setError("Tip payment breakdown must add up to the total tip.");
 
     startTransition(async () => {
@@ -203,13 +226,13 @@ export function BatchEntryForm({
               step="0.01"
               min="0"
               value={tipAmount}
-              onChange={(e) => setTipAmount(e.target.value)}
+              onChange={(e) => handleTipAmountChange(e.target.value)}
               className={`${selectClasses()} w-40`}
             />
           </div>
           {tipTotal > 0 && (
             <PaymentBreakdown
-              title="Tip payment breakdown (optional)"
+              title="Tip payment method (required)"
               total={tipTotal}
               rows={tipPayments}
               setRows={setTipPayments}

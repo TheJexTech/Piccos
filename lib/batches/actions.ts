@@ -24,6 +24,9 @@ export async function recordBatchActivity(
       return { error: "Each service needs a selection and a quantity greater than zero." };
     }
   }
+  if ((input.tipAmount || 0) > 0 && input.tipPayments.length === 0) {
+    return { error: "Please select a payment method for the tip." };
+  }
   for (const payment of [...input.payments, ...input.tipPayments]) {
     if (!Number.isFinite(payment.amount) || payment.amount <= 0) {
       return { error: "Each payment breakdown row needs an amount greater than zero." };
